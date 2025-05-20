@@ -161,6 +161,9 @@ function getStringOf (obj: object, property: string): null | string {
 
 function _errorDetailToList (detail: IErrorDetail<any>, temp: WeakSet<any>): string[] {
   const keys = new Set(Object.keys(detail))
+  if (!keys.has('stack') && ('stack' in detail)) {
+    keys.add('stack')
+  }
   const fields: string[] = []
   let stack: null | string = null
   let cause: null | string = null
