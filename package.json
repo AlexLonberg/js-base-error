@@ -1,0 +1,40 @@
+{
+  "name": "js-base-error",
+  "version": "0.1.0",
+  "description": "JS Base Error.",
+  "author": "Alexander Lonberg <alexlonberg@gmail.com>",
+  "homepage": "https://github.com/AlexLonberg/js-base-error",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AlexLonberg/js-base-error.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "error"
+  ],
+  "scripts": {
+    "test": "vitest run --coverage --config vitest.config.ts",
+    "predist": "node ./scripts/dist.js",
+    "dist": "tsc --project tsconfig.dist.json"
+  },
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@eslint/js": "^9.27.0",
+    "@stylistic/eslint-plugin": "^4.2.0",
+    "@vitest/browser": "^3.1.4",
+    "@vitest/coverage-istanbul": "^3.1.4",
+    "eslint": "^9.27.0",
+    "nodejs-pkg-tools": "^0.5.0",
+    "playwright": "^1.52.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.32.1",
+    "vitest": "^3.1.4"
+  },
+  "exports": {
+    ".": {
+      "import": "./src/index.ts"
+    }
+  },
+  "main": "./src/index.ts"
+}
