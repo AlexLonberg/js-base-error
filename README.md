@@ -37,12 +37,13 @@ const errorCodes = Object.freeze({
 } as const)
 type TErrorCode = typeof errorCodes[keyof typeof errorCodes]
 
-class ValueError extends BaseError<TErrorCode> {
+class ValueError extends BaseError<IErrorLike<TErrorCode>> {
   constructor(message: string, cause?: unknown) {
     super({ 
-      name: 'ValueError', 
+      name: 'Lib.ValueError', 
       code: errorCodes.ValueError, 
-      message, cause 
+      message, 
+      cause 
     })
   }
 }

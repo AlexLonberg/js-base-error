@@ -3,11 +3,19 @@
  *
  * Безопасная альтернатива явного вызова `Error.captureStackTrace()`. В окружениях, где он отсутствует, функция становится no-op.
  */
-const captureStackTrace = ((): ((target: object) => void) => {
+const captureStackTrace = ((): ((target: object, construct?: undefined | null | Function) => void) => {
   try {
     const fun = Reflect.get(Error, 'captureStackTrace')
     if (typeof fun === 'function') {
-      return fun.bind(Error)
+      const cstBind = fun.bind(Error)
+      return function cst (target: object, construct?: undefined | null | Function) {
+        if (typeof construct !== 'function') {
+          construct = cst
+        }
+        const temp = {}
+        cstBind(temp, construct)
+        Reflect.set(target, 'stack', Reflect.get(temp, 'stack'))
+      }
     }
   } catch (_) { /**/ }
   return ((..._: any) => { /**/ })
@@ -27,9 +35,9 @@ interface IErrorDetail<TCode extends number | string> {
    */
   code: TCode
   /**
-   * Обязательное поле описания ошибки.
+   * Необязательное поле описания ошибки.
    */
-  message: string
+  message?: undefined | null | string
   /**
    * Необязательное поле имя ошибки. Может быть установлено явно или будет извлечено из {@link Error}.
    */
@@ -64,22 +72,30 @@ const ErrorLikeProto = Object.freeze({
   }
 } as const)
 
+// TODO Попытка заменить сигнатуру, так как первоначальный вариант строго типизирует вывод и не дает определить тип выходного.
+// В самом классе BaseError скорее всего менять ничего не нужно - их может переопределить пользователь, но функция createErrorLike
+// не дает нормально получить возвращаемый тип, который может быть совсем не IErrorLike, а расширенный пользователем.
+
 /**
  * Базовый класс ошибок.
  *
  * Обеспечивает прямой доступ к {@link IErrorDetail}, коду ошибки {@link IErrorDetail.code} и форматированию к строке.
  */
-abstract class BaseError<TCode extends number | string> extends Error {
-  readonly detail: IErrorLike<TCode>
+abstract class BaseError<T extends IErrorLike<any>> extends Error {
+  readonly detail: T
 
-  constructor(detail: IErrorLike<TCode> | IErrorDetail<TCode>) {
-    super(detail.message)
+  constructor(detail: T | Exclude<T, 'tostring'>) {
+    super(detail.message ?? undefined)
     this.detail = isErrorLike(detail) ? detail : createErrorLike(detail, false)
     _writeNameAndStackOf(this.detail, this)
   }
 
-  get code (): TCode {
+  get code (): T['code'] {
     return this.detail.code
+  }
+
+  override get name (): string {
+    return this.detail.name ?? super.name
   }
 
   get level (): TErrorLevel {
@@ -97,7 +113,7 @@ abstract class BaseError<TCode extends number | string> extends Error {
  * @param detail Совместимый {@link IErrorDetail}.
  * @param captureStack Установка `true` вызывает `Error.captureStackTrace()` для объекта.
  */
-function createErrorLike<T extends IErrorDetail<any>> (detail: T, captureStack?: undefined | null | boolean): IErrorLike<T['code']> {
+function createErrorLike<T extends IErrorLike<any>> (detail: Exclude<T, 'tostring'>, captureStack?: undefined | null | boolean, construct?: undefined | null | Function): (IErrorDetail<T['code']> & T) {
   const props: IErrorDetail<any> = (typeof detail === 'object' && detail !== null)
     ? detail
     : {
@@ -107,14 +123,14 @@ function createErrorLike<T extends IErrorDetail<any>> (detail: T, captureStack?:
       cause: detail
     }
   if (captureStack) {
-    captureStackTrace(props)
+    captureStackTrace(props, construct)
   }
   return Object.assign(Object.create(ErrorLikeProto), props)
 }
 
 function _writeNameAndStackOf<T extends IErrorDetail<any>> (detail: T, error: Error): void {
   if (typeof detail.name !== 'string') {
-    detail.name = getStringOf(error, 'name')
+    detail.name = error.constructor.name
   }
   if (typeof detail.stack !== 'string') {
     detail.stack = getStringOf(error, 'stack')
@@ -194,7 +210,7 @@ function _errorDetailToList (detail: IErrorDetail<any>, temp: WeakSet<any>): str
           cause = _errorToString(raw, temp)
         }
       }
-      else if (raw) {
+      else if (typeof raw !== 'undefined' && raw !== null) {
         cause = safeAnyToString(raw)
       }
     } catch (_) { /**/ }
@@ -211,7 +227,7 @@ function _errorDetailToList (detail: IErrorDetail<any>, temp: WeakSet<any>): str
           value = _errorToString(raw, temp)
         }
       }
-      else if (raw) {
+      else if (typeof raw !== 'undefined' && raw !== null) {
         value = safeAnyToString(raw)
       }
     } catch (_) { /**/ }
@@ -245,7 +261,7 @@ function errorDetailToList (detail: IErrorDetail<any>): string[] {
  * @param detail Объект деталей ошибки.
  */
 function errorDetailToString (detail: IErrorDetail<any>): string {
-  return errorDetailToList(detail).join('\n')
+  return _errorDetailToList(detail, new WeakSet()).join('\n')
 }
 
 function _nativeErrorToString (error: Error, temp: WeakSet<any>): string {
@@ -262,7 +278,7 @@ function _nativeErrorToString (error: Error, temp: WeakSet<any>): string {
         cause = _errorToString(raw, temp)
       }
     }
-    else if (raw) {
+    else if (typeof raw !== 'undefined' && raw !== null) {
       cause = safeAnyToString(raw)
     }
   } catch (_) { /**/ }
@@ -292,7 +308,7 @@ function _errorToString (anyValue: any, temp: WeakSet<any>): null | string {
     return _errorDetailToList(anyValue, temp).join('\n')
   }
   // Неизвестное значение просто пытаемся привести к строке
-  if (anyValue) {
+  if (typeof anyValue !== 'undefined' && anyValue !== null) {
     return safeAnyToString(anyValue)
   }
   return null

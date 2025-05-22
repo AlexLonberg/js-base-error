@@ -3,7 +3,7 @@ import { describe, test, expect } from 'vitest'
 /**
  * Пример использования базовых интерфейсов.
  */
-import { BaseError, createErrorLike, errorToString, isErrorLike } from './index.js'
+import { type IErrorLike, BaseError, createErrorLike, errorToString, isErrorLike } from './index.js'
 
 // # 1. Определяем коды ошибок.
 
@@ -19,7 +19,7 @@ type TErrorCode = TErrorCodes[keyof TErrorCodes]
 
 // # 2. Определяем базовую ошибку библиотеки.
 
-class BaseLibError extends BaseError<TErrorCode> { }
+class BaseLibError extends BaseError<IErrorLike<TErrorCode>> { }
 
 // # 3. Стратегия генерации ошибок с помощью конструктора.
 
@@ -33,7 +33,7 @@ class UnknownError extends BaseLibError {
 //      или просто возврат пользователю. Ошибка созданная с createErrorLike() уже
 //      имеет метод форматирования к строке
 
-const errorMessages = Object.freeze({
+const errorDetails = Object.freeze({
   ValueError (message: string, captureStack?: null | undefined | boolean, cause?: undefined | null | unknown) {
     return createErrorLike({
       name: 'ValueError',
@@ -63,8 +63,8 @@ describe('Example Usage Integration', () => {
     expect(str).toMatch(/stack:/)
   })
 
-  test('errorMessages.ValueError should create IErrorLike', () => {
-    const valErrorLike = errorMessages.ValueError('Invalid input value', true)
+  test('errorDetails.ValueError should create IErrorLike', () => {
+    const valErrorLike = errorDetails.ValueError('Invalid input value', true)
     expect(isErrorLike(valErrorLike)).toBe(true)
     expect(valErrorLike.code).toBe(errorCodes.ValueError)
     expect(valErrorLike.message).toBe('Invalid input value')
@@ -77,7 +77,7 @@ describe('Example Usage Integration', () => {
   })
 
   test('ValueError class should wrap IErrorLike correctly', () => {
-    const errorDetail = errorMessages.ValueError('Input is not a number')
+    const errorDetail = errorDetails.ValueError('Input is not a number')
     const err = new ValueError(errorDetail)
 
     expect(err).toBeInstanceOf(BaseLibError)
@@ -98,7 +98,7 @@ describe('Example Usage Integration', () => {
 
   test('BaseError should handle cause correctly (using example classes)', () => {
     const rootCause = new UnknownError('The very first problem')
-    const midCauseDetail = errorMessages.ValueError('Intermediate issue', false)
+    const midCauseDetail = errorDetails.ValueError('Intermediate issue', false)
     const midError = new ValueError(midCauseDetail);
     (midError.detail as any).cause = rootCause // Устанавливаем причину для ValueError
 
@@ -136,7 +136,7 @@ describe('Example Usage Integration', () => {
 })
 
 test('Error formatting', () => {
-  const err = new ValueError(errorMessages.ValueError('base error', null, new UnknownError('uncertainty')))
+  const err = new ValueError(errorDetails.ValueError('base error', null, new UnknownError('uncertainty')))
 
   // Удалим стек, иначе не сможем увидеть точный формат
   err.detail.stack = null;
@@ -147,7 +147,7 @@ test('Error formatting', () => {
 code: 1
 message: base error
 cause:
-name: Error
+name: UnknownError
 code: 0
 message: uncertainty`
 

@@ -73,8 +73,8 @@ test('should correctly assign all IErrorDetail properties', () => {
 })
 
 describe('BaseError', () => {
-  class DefaultError extends BaseError<number> { }
-  class TestError extends BaseError<number> {
+  class DefaultError extends BaseError<IErrorLike<number>> { }
+  class TestError extends BaseError<IErrorLike<number>> {
     constructor(code: number, message: string, level?: TErrorLevel) {
       super({ code, message, level })
     }
@@ -104,9 +104,10 @@ describe('BaseError', () => {
 
   test('should set name and stack in detail from the Error instance', () => {
     const err = new TestError(103, 'Name and stack')
-    // В тестовой среде имена ошибок могут не отражать полного имени класса TestError
-    // expect(err.detail.name).toBe('TestError')
-    expect(err.detail.name).toBe('Error')
+    // Скорее всего имя ошибки по умолчанию будет именем класса 'TestError', но в тестовой среде и минифицированном
+    // коде можно ожидать всего, поэтому не стоит ожидать точного имени
+    expect(err.detail.name).toBe('TestError')
+    // expect(err.detail.name).toMatch('Error')
     expect(err.detail.stack).toEqual(expect.any(String))
     expect(err.detail.stack).toContain('Error')
     expect(err.stack).toBe(err.detail.stack)
