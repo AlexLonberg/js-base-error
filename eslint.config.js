@@ -10,7 +10,6 @@ const tsRules = tsEslint.configs.stylisticTypeChecked
 // Пример конфигурации https://typescript-eslint.io/packages/typescript-eslint#advanced-usage
 export default tsEslint.config(
   {
-    // TODO Меняем каталоги и имя проекта
     name: 'js-base-error',
     files: [
       'src/**/*.{ts,js}',

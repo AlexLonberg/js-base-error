@@ -3,13 +3,16 @@ import {
   type TErrorLevel,
   type IErrorDetail,
   type IErrorLike,
+  // type IErrorLikeCollection,
   ErrorLikeProto,
   BaseError,
+  ErrorLikeCollection,
   // captureStackTrace,
   createErrorLike,
+  // ensureErrorLike,
   isErrorLike,
   safeAnyToString,
-  getStringOf,
+  safeGetStringOf,
   errorDetailToList,
   errorDetailToString,
   nativeErrorToString,
@@ -153,19 +156,19 @@ describe('safeAnyToString', () => {
   })
 })
 
-describe('getStringOf', () => {
+describe('safeGetStringOf', () => {
   const obj = { name: 'TestObj', count: 5, complex: { value: 'nested' }, badToString: { toString: () => { throw new Error('fail') } } }
   test('should get string property', () => {
-    expect(getStringOf(obj, 'name')).toBe('TestObj')
+    expect(safeGetStringOf(obj, 'name')).toBe('TestObj')
   })
   test('should convert non-string property using safeAnyToString', () => {
-    expect(getStringOf(obj, 'count')).toBe('5')
+    expect(safeGetStringOf(obj, 'count')).toBe('5')
   })
   test('should return null for non-existent property', () => {
-    expect(getStringOf(obj, 'nonExistent')).toBeNull()
+    expect(safeGetStringOf(obj, 'nonExistent')).toBeNull()
   })
   test('should return null if safeAnyToString returns null', () => {
-    expect(getStringOf(obj, 'badToString')).toBeNull()
+    expect(safeGetStringOf(obj, 'badToString')).toBeNull()
   })
 })
 
@@ -306,4 +309,36 @@ describe('errorToString (universal formatter)', () => {
     expect(errorToString(null)).toBe('')
     expect(errorToString(undefined)).toBe('')
   })
+})
+
+test('ErrorLikeCollection', () => {
+  const errorLike = createErrorLike({ code: 0x1001, name: 'MyLib.CustomError', level: 'warning' })
+  const collection = new ErrorLikeCollection('warnings', [undefined, errorLike])
+  expect([...collection]).toMatchObject([
+    {
+      code: 0,
+      message: 'IErrorLike was not created',
+      level: 'error',
+      cause: undefined
+    },
+    {
+      code: 0x1001,
+      name: 'MyLib.CustomError',
+      level: 'warning'
+    }
+  ])
+  expect(collection[1]).toBe(errorLike)
+
+  const asString = `${collection}`
+  const expected = `
+warnings.0:
+code: 0
+message: IErrorLike was not created
+level: error
+warnings.1:
+name: MyLib.CustomError
+code: 4097
+level: warning
+`.trim()
+  expect(asString).toBe(expected)
 })

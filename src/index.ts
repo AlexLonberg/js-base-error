@@ -35,13 +35,13 @@ interface IErrorDetail<TCode extends number | string> {
    */
   code: TCode
   /**
-   * Необязательное поле описания ошибки.
-   */
-  message?: undefined | null | string
-  /**
    * Необязательное поле имя ошибки. Может быть установлено явно или будет извлечено из {@link Error}.
    */
   name?: undefined | null | string
+  /**
+   * Необязательное поле описания ошибки.
+   */
+  message?: undefined | null | string
   /**
    * Необязательное поле уровня ошибки. По умолчанию все ошибки считаются `'error'`.
    */
@@ -64,6 +64,13 @@ interface IErrorLike<TCode extends number | string> extends IErrorDetail<TCode> 
 }
 
 /**
+ * Массив ошибок с методом автоматического преобразования `toString()` всех вложенных {@link IErrorLike} к строке.
+ */
+interface IErrorLikeCollection<T extends IErrorLike<any>> extends Array<T> {
+  toString (): string
+}
+
+/**
  * Прототип для реализации интерфейса {@link IErrorLike}.
  */
 const ErrorLikeProto = Object.freeze({
@@ -71,10 +78,6 @@ const ErrorLikeProto = Object.freeze({
     return errorDetailToString(this as IErrorDetail<any>)
   }
 } as const)
-
-// TODO Попытка заменить сигнатуру, так как первоначальный вариант строго типизирует вывод и не дает определить тип выходного.
-// В самом классе BaseError скорее всего менять ничего не нужно - их может переопределить пользователь, но функция createErrorLike
-// не дает нормально получить возвращаемый тип, который может быть совсем не IErrorLike, а расширенный пользователем.
 
 /**
  * Базовый класс ошибок.
@@ -108,10 +111,81 @@ abstract class BaseError<T extends IErrorLike<any>> extends Error {
 }
 
 /**
+ * Массив ошибок реализующий {@link IErrorLikeCollection}.
+ *
+ * **Warning**: Не устанавливайте элементы присвоением индексов, это невозможно проверить.
+ * Методы `push()/unshift()/splice()` предварительно проверяют тип и принудительно приводят элемент к {@link IErrorLike}.
+ * Другие методы не реализованы и могут возвратить не то что ожидается.
+ *
+ * Применяйте массив для агрегирования нескольких ошибок в одно поле {@link IErrorDetail}:
+ *
+ * ```ts
+ * const detail = {
+ *   // будет правильно преобразовано к строке с несколькими ошибками
+ *   warnings: new ErrorLikeCollection('warnings', [{code: 1, level: 'warning'}])
+ * }
+ * ```
+ */
+class ErrorLikeCollection<T extends IErrorLike<any>> extends Array<T> implements IErrorLikeCollection<T> {
+  protected _prefix: string
+
+  /**
+   * @param prefix Имя поля для форматирования к строке. По молчанию `errors`.
+   *               Поля будут именоваться как `errors.0: ... , errors.1: ... ` и т.д.
+   * @param iterable Массивоподобный объект с ошибками.
+   */
+  constructor(prefix?: undefined | null | string, iterable?: undefined | null | Iterable<any> | ArrayLike<any>) {
+    super()
+    this._prefix = (typeof prefix === 'string') ? prefix : 'errors'
+    if (iterable) {
+      const items = Array.from(iterable)
+      this.push(...items)
+    }
+  }
+
+  get prefix (): string {
+    return this._prefix
+  }
+
+  set prefix (v: string) {
+    this._prefix = (typeof v === 'string') ? v : 'errors'
+  }
+
+  override push (...items: T[]): number {
+    for (const item of items) {
+      super.push(ensureErrorLike(item))
+    }
+    return this.length
+  }
+
+  override unshift (...items: T[]): number {
+    for (const item of items) {
+      super.unshift(ensureErrorLike(item))
+    }
+    return this.length
+  }
+
+  override splice (start: number, deleteCount?: number): ErrorLikeCollection<T>
+  override splice (start: number, deleteCount: number, ...items: T[]): ErrorLikeCollection<T> {
+    const rest = items?.map((item) => ensureErrorLike<T>(item)) ?? ([] as T[])
+    return new ErrorLikeCollection<T>(this._prefix, super.splice(start, deleteCount, ...rest))
+  }
+
+  override toString (): string {
+    const strings: string[] = []
+    for (let i = 0; i < this.length; ++i) {
+      strings.push(`${this._prefix}.${i}:`, this[i]!.toString())
+    }
+    return strings.join('\n')
+  }
+}
+
+/**
  * Создает {@link IErrorLike} добавляя прототип {@link ErrorLikeProto} форматирования объекта к строке.
  *
  * @param detail Совместимый {@link IErrorDetail}.
- * @param captureStack Установка `true` вызывает `Error.captureStackTrace()` для объекта.
+ * @param captureStack Установка `true` вызывает `Error.captureStackTrace(detail)`.
+ * @param construct Имя функции, котору надо исключить из стека. Смотри справку [Error.captureStackTrace(...)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/captureStackTrace)
  */
 function createErrorLike<T extends IErrorLike<any>> (detail: Exclude<T, 'tostring'>, captureStack?: undefined | null | boolean, construct?: undefined | null | Function): (IErrorDetail<T['code']> & T) {
   const props: IErrorDetail<any> = (typeof detail === 'object' && detail !== null)
@@ -128,12 +202,30 @@ function createErrorLike<T extends IErrorLike<any>> (detail: Exclude<T, 'tostrin
   return Object.assign(Object.create(ErrorLikeProto), props)
 }
 
+/**
+ * Проверяет тип `maybeError` и возвращает {@link IErrorLike}. Если аргумент `maybeError` ошибка {@link BaseError}
+ * извлекается свойство `detail`, иначе явно вызывается {@link createErrorLike}.
+ *
+ * Параметр типа `T` может использоваться для удобства типизации.
+ *
+ * @param maybeError Предполагаемый тип совместимый с {@link IErrorLike}.
+ */
+function ensureErrorLike<T extends IErrorLike<any> = IErrorLike<any>> (maybeError: any): T {
+  if (isErrorLike(maybeError)) {
+    return maybeError as T
+  }
+  if (maybeError instanceof BaseError) {
+    return maybeError.detail
+  }
+  return createErrorLike(maybeError)
+}
+
 function _writeNameAndStackOf<T extends IErrorDetail<any>> (detail: T, error: Error): void {
   if (typeof detail.name !== 'string') {
     detail.name = error.constructor.name
   }
   if (typeof detail.stack !== 'string') {
-    detail.stack = getStringOf(error, 'stack')
+    detail.stack = safeGetStringOf(error, 'stack')
   }
 }
 
@@ -165,7 +257,7 @@ function safeAnyToString (anyValue: any): null | string {
  * @param obj Целевой объект.
  * @param property Имя свойства.
  */
-function getStringOf (obj: object, property: string): null | string {
+function safeGetStringOf (obj: object, property: string): null | string {
   try {
     const value = Reflect.get(obj, property)
     if (typeof value !== 'undefined' && value !== null && value !== '') {
@@ -188,7 +280,7 @@ function _errorDetailToList (detail: IErrorDetail<any>, temp: WeakSet<any>): str
   for (const name of ['name', 'code', 'message', 'level']) {
     if (keys.has(name)) {
       keys.delete(name)
-      const value = getStringOf(detail, name)
+      const value = safeGetStringOf(detail, name)
       if (value) {
         fields.push(`${name}: ${value}`)
       }
@@ -198,7 +290,7 @@ function _errorDetailToList (detail: IErrorDetail<any>, temp: WeakSet<any>): str
   // Эти свойства предпочтительней разместить в конце
   if (keys.has('stack')) {
     keys.delete('stack')
-    stack = getStringOf(detail, 'stack')
+    stack = safeGetStringOf(detail, 'stack')
   }
   if (keys.has('cause')) {
     keys.delete('cause')
@@ -216,18 +308,15 @@ function _errorDetailToList (detail: IErrorDetail<any>, temp: WeakSet<any>): str
     } catch (_) { /**/ }
   }
 
-  // Все остальные свойства.
+  // Все остальные свойства приводятся к строке.
   for (const name of keys) {
     let value: null | string = null
     try {
       const raw = Reflect.get(detail, name)
       if (typeof raw === 'object' && raw !== null) {
-        if (!temp.has(raw)) {
-          temp.add(raw)
-          value = _errorToString(raw, temp)
-        }
+        temp.add(raw)
       }
-      else if (typeof raw !== 'undefined' && raw !== null) {
+      if (typeof raw !== 'undefined' && raw !== null) {
         value = safeAnyToString(raw)
       }
     } catch (_) { /**/ }
@@ -267,7 +356,7 @@ function errorDetailToString (detail: IErrorDetail<any>): string {
 function _nativeErrorToString (error: Error, temp: WeakSet<any>): string {
   // Собственная ошибка уже извлекает имя
   const baseMessage = safeAnyToString(error)
-  const stack = getStringOf(error, 'stack')
+  const stack = safeGetStringOf(error, 'stack')
   let cause: null | string = null
   try {
     const raw = Reflect.get(error, 'cause')
@@ -355,13 +444,16 @@ export {
   type TErrorLevel,
   type IErrorDetail,
   type IErrorLike,
+  type IErrorLikeCollection,
   ErrorLikeProto,
   BaseError,
+  ErrorLikeCollection,
   captureStackTrace,
   createErrorLike,
+  ensureErrorLike,
   isErrorLike,
   safeAnyToString,
-  getStringOf,
+  safeGetStringOf,
   errorDetailToList,
   errorDetailToString,
   nativeErrorToString,
