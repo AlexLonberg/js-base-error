@@ -16,8 +16,37 @@ import {
   errorDetailToList,
   errorDetailToString,
   nativeErrorToString,
-  errorToString
+  errorToString,
+  errorDetailToJsonLike,
+  nativeErrorToJsonLike,
+  errorToJsonLike
 } from './index.js'
+
+// NOTE: Этот код находился в index.js и подменял createErrorLike. Сейчас это работает без этого исправления. Оставлено для справки.
+// /**
+//  * В среде vitest + playwright не работает Error.captureStackTrace(...)
+//  * Добавляем в vitest.config.ts -> env: { FIX_CAPTURE_STACK_TRACE: true } для эмуляции захвата стека через стандартные механизмы ошибки.
+//  */
+// void function () {
+//   try {
+//     const isTest = Reflect.get(globalThis, 'FIX_CAPTURE_STACK_TRACE')
+//     if (typeof isTest === 'boolean' && isTest) {
+//       (createErrorLike as any) = <T extends IErrorDetail<any>> (detail: T, captureStack?: null | undefined | boolean) => {
+//         const props: IErrorDetail<any> = (typeof detail === 'object' && detail !== null)
+//           ? detail
+//           : {
+//             message: 'IErrorLike was not created',
+//             level: 'error',
+//             cause: detail
+//           }
+//         if (captureStack) {
+//           props.stack = (new Error()).stack ?? null
+//         }
+//         return Object.assign(Object.create(ErrorLikeProto), props)
+//       }
+//     }
+//   } catch (_) { /**/ }
+// }()
 
 test('should create an IErrorLike object with default values', () => {
   const detail = { code: 1, message: 'Test message' }
@@ -29,6 +58,7 @@ test('should create an IErrorLike object with default values', () => {
   expect(errorLike.stack).toBeUndefined()
   expect(isErrorLike(errorLike)).toBe(true)
   expect(typeof errorLike.toString).toBe('function')
+  expect(typeof errorLike.toJSON).toBe('function')
 })
 
 test('should use ErrorLikeProto', () => {
@@ -38,16 +68,20 @@ test('should use ErrorLikeProto', () => {
 
 test('should handle non-object detail by creating a default error', () => {
   const errorLike = createErrorLike('invalid detail' as any)
-  expect(errorLike.code).toBe(0)
   expect(errorLike.message).toBe('IErrorLike was not created')
   expect(errorLike.level).toBe('error')
   expect(errorLike.cause).toBe('invalid detail')
   expect(isErrorLike(errorLike)).toBe(true)
+  expect(errorLike.toJSON()).toStrictEqual({
+    message: 'IErrorLike was not created',
+    level: 'error',
+    cause: 'invalid detail'
+  })
 })
 
 test('should call captureStackTrace if captureStack is true', () => {
   const detail = { code: 2, message: 'Capture test' }
-  const errorLike = createErrorLike(detail, true)
+  const errorLike = createErrorLike<IErrorLike>(detail, true)
   expect(typeof errorLike.stack).toBe('string')
   const asString = errorLike.toString()
   const expected = 'code: 2\n' +
@@ -73,6 +107,18 @@ test('should correctly assign all IErrorDetail properties', () => {
   expect(errorLike.stack).toBe('custom stack')
   expect(errorLike.cause).toBeInstanceOf(Error)
   expect((errorLike.cause as Error).message).toBe('root cause')
+  expect(errorLike.toJSON()).toStrictEqual({
+    code: 'C100',
+    message: 'Full detail',
+    name: 'CustomError',
+    level: 'warning',
+    stack: 'custom stack',
+    cause: {
+      name: 'Error',
+      message: 'root cause',
+      stack: expect.any(String)
+    }
+  })
 })
 
 describe('BaseError', () => {
@@ -95,7 +141,6 @@ describe('BaseError', () => {
     expect(err.detail.code).toBe(101)
     expect(err.detail.message).toBe('Detail access')
     expect(err.detail.level).toBe('info')
-    expect(err.code).toBe(101)
     expect(err.level).toBe('info')
   })
 
@@ -117,17 +162,15 @@ describe('BaseError', () => {
   })
 
   test('should use provided IErrorLike directly', () => {
-    const errorLikeDetail = createErrorLike({ code: 104, message: 'From IErrorLike', name: 'MyErrorLike' })
+    const errorLikeDetail = createErrorLike({ message: 'From IErrorLike', name: 'MyErrorLike' })
     const err = new DefaultError(errorLikeDetail)
     expect(err.detail).toBe(errorLikeDetail) // Должен быть тот же объект
-    expect(err.code).toBe(104)
     expect(err.message).toBe('From IErrorLike') // super(detail.message)
     expect(err.detail.name).toBe('MyErrorLike') // Имя из IErrorLike
   })
 
   test('constructor should prioritize detail.name and detail.stack if provided', () => {
     const detailWithNameAndStack: IErrorDetail<number> = {
-      code: 105,
       message: 'Custom name and stack',
       name: 'ExplicitName',
       stack: 'ExplicitStack\n  at foo (bar.js:1:1)'
@@ -297,12 +340,26 @@ describe('errorToString (universal formatter)', () => {
     const str = errorToString(nativeErr)
     expect(str).toContain('Error: Universal native Error')
     expect(str).toContain('stack:\nError: Universal native Error\n  at n (n.js:1:1)')
+    const json = nativeErrorToJsonLike(nativeErr)
+    expect(json).toStrictEqual({
+      name: 'Error',
+      message: 'Universal native Error',
+      stack: expect.any(String)
+    })
   })
 
   test('should format string, number, boolean', () => {
     expect(errorToString('Just a string')).toBe('Just a string')
     expect(errorToString(12345)).toBe('12345')
     expect(errorToString(true)).toBe('true')
+
+    // Все примитивные значения на верхнем уровне - будут записаны в свойство __value
+    expect(errorToJsonLike(123)).toStrictEqual({ __value: 123 })
+    // @ts-expect-error
+    expect(nativeErrorToJsonLike(true)).toStrictEqual({ __value: true })
+    // Для конкретных функций работающих с объектами - нельзя передавать невалидный тип
+    // @ts-expect-error
+    expect(() => errorDetailToJsonLike(false)).toThrow()
   })
 
   test('should return empty string for null or undefined', () => {
@@ -311,28 +368,27 @@ describe('errorToString (universal formatter)', () => {
   })
 })
 
-test('ErrorLikeCollection', () => {
-  const errorLike = createErrorLike({ code: 0x1001, name: 'MyLib.CustomError', level: 'warning' })
-  const collection = new ErrorLikeCollection('warnings', [undefined, errorLike])
-  expect([...collection]).toMatchObject([
-    {
-      code: 0,
-      message: 'IErrorLike was not created',
-      level: 'error',
-      cause: undefined
-    },
-    {
-      code: 0x1001,
-      name: 'MyLib.CustomError',
-      level: 'warning'
-    }
-  ])
-  expect(collection[1]).toBe(errorLike)
+describe('ErrorLikeCollection', () => {
+  test('toString', () => {
+    const errorLike = createErrorLike({ code: 0x1001, name: 'MyLib.CustomError', level: 'warning' })
+    const collection = new ErrorLikeCollection('warnings', [undefined, errorLike])
+    expect([...collection]).toMatchObject([
+      {
+        message: 'IErrorLike was not created',
+        level: 'error',
+        cause: undefined
+      },
+      {
+        code: 0x1001,
+        name: 'MyLib.CustomError',
+        level: 'warning'
+      }
+    ])
+    expect(collection[1]).toBe(errorLike)
 
-  const asString = `${collection}`
-  const expected = `
+    const asString = `${collection}`
+    const expected = `
 warnings.0:
-code: 0
 message: IErrorLike was not created
 level: error
 warnings.1:
@@ -340,5 +396,33 @@ name: MyLib.CustomError
 code: 4097
 level: warning
 `.trim()
-  expect(asString).toBe(expected)
+    expect(asString).toBe(expected)
+  })
+
+  test('toJSON', () => {
+    // Расширяем тип ошибок
+    interface IErrorLike_ extends IErrorLike {
+      collection: any
+    }
+    // ... и устанавливаем дженерик
+    const errorLike = createErrorLike<IErrorLike_>({
+      name: 'MyLib.CustomError',
+      collection: new ErrorLikeCollection(null, [{ name: 'MyLib.Error1' }, { name: 'MyLib.Error2' }])
+    })
+
+    // Будет вызвана toJSON
+    expect(JSON.stringify(errorLike)).toStrictEqual(JSON.stringify({
+      name: 'MyLib.CustomError',
+      collection: {
+        errors: [
+          {
+            name: 'MyLib.Error1'
+          },
+          {
+            name: 'MyLib.Error2'
+          }
+        ]
+      }
+    }))
+  })
 })

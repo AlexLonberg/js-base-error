@@ -53,7 +53,7 @@ describe('Example Usage Integration', () => {
     const err = new UnknownError('Something unknown happened')
     expect(err).toBeInstanceOf(BaseLibError)
     expect(err).toBeInstanceOf(UnknownError)
-    expect(err.code).toBe(errorCodes.UnknownError)
+    expect(err.detail.code).toBe(errorCodes.UnknownError)
     expect(err.message).toBe('Something unknown happened')
     expect(err.level).toBe('error') // Default from BaseError
 
@@ -82,7 +82,7 @@ describe('Example Usage Integration', () => {
 
     expect(err).toBeInstanceOf(BaseLibError)
     expect(err).toBeInstanceOf(ValueError)
-    expect(err.code).toBe(errorCodes.ValueError)
+    expect(err.detail.code).toBe(errorCodes.ValueError)
     expect(err.message).toBe('Input is not a number') // From super(detail.message)
     expect(err.detail.name).toBe('ValueError') // Name from errorDetail
     expect(err.level).toBe('error') // Default from BaseError

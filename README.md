@@ -5,6 +5,8 @@
 
     npm install js-base-error
 
+> В нескольких зависимых проектах `js-base-error` должна быть перенесена в `peerDependencies`, причина - функции `toString()` должны обнаружить ссылки на один и тот класс `BaseError` или прототип `IErrorLike`. 
+
 * Базовый класс `BaseError`
 * Поддержка вложенных ошибок (`cause`)
 * Преобразование чего угодно к строке (`errorToString`)
@@ -30,10 +32,13 @@ import {
   errorDetailToList,
   errorDetailToString,
   nativeErrorToString,
-  errorToString
+  errorToString,
+  errorDetailToJsonLike,
+  nativeErrorToJsonLike,
+  errorToJsonLike
 } from 'js-base-error'
 
-/** Коды ошибок. */
+/** Необязательные коды ошибок. */
 const errorCodes = Object.freeze({
   UnknownError: 0,
   ValueError: 1

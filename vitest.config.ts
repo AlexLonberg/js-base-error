@@ -9,7 +9,8 @@ export default defineConfig({
     ],
     setupFiles: './scripts/vitest.setup.ts',
     env: {
-      FIX_CAPTURE_STACK_TRACE: true,
+      // для чего это - описано в файле тестов
+      FIX_CAPTURE_STACK_TRACE: true
     },
     browser: {
       // enabled: false,
@@ -19,8 +20,8 @@ export default defineConfig({
       // headless: true,
       instances: [{
         browser: 'chromium',
-        env: { FIX_CAPTURE_STACK_TRACE: true },
-      }],
+        env: { FIX_CAPTURE_STACK_TRACE: true }
+      }]
     },
     coverage: {
       enabled: true,

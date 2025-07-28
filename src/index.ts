@@ -29,11 +29,11 @@ type TErrorLevel = 'info' | 'warning' | 'error' | 'debug'
 /**
  * Базовый интерфейс деталей ошибки.
  */
-interface IErrorDetail<TCode extends number | string> {
+interface IErrorDetail<TCode extends number | string = number | string> {
   /**
-   * Обязательное поле кода ошибки.
+   * Необязательное поле кода ошибки.
    */
-  code: TCode
+  code?: undefined | null | TCode
   /**
    * Необязательное поле имя ошибки. Может быть установлено явно или будет извлечено из {@link Error}.
    */
@@ -57,17 +57,20 @@ interface IErrorDetail<TCode extends number | string> {
 }
 
 /**
- * Расширяет {@link IErrorDetail} методом форматирования `toString()`.
+ * Расширяет {@link IErrorDetail} методом форматирования `toString()` и `toJSON()`.
  */
-interface IErrorLike<TCode extends number | string> extends IErrorDetail<TCode> {
+interface IErrorLike<TCode extends number | string = number | string> extends IErrorDetail<TCode> {
   toString (): string
+  toJSON (): Record<string, any>
 }
 
 /**
- * Массив ошибок с методом автоматического преобразования `toString()` всех вложенных {@link IErrorLike} к строке.
+ * Массив ошибок с методом автоматического преобразования `toString()` всех вложенных {@link IErrorLike} к строке или
+ * `toJSON()` к объекту `{errors: Record<string, any>[]}`.
  */
-interface IErrorLikeCollection<T extends IErrorLike<any>> extends Array<T> {
+interface IErrorLikeCollection<T extends IErrorLike<any> = IErrorLike<any>> extends Array<T> {
   toString (): string
+  toJSON (): Record<string, any>
 }
 
 /**
@@ -76,25 +79,24 @@ interface IErrorLikeCollection<T extends IErrorLike<any>> extends Array<T> {
 const ErrorLikeProto = Object.freeze({
   toString (): string {
     return errorDetailToString(this as IErrorDetail<any>)
+  },
+  toJSON (): Record<string, any> {
+    return errorDetailToJsonLike(this as IErrorDetail<any>)
   }
 } as const)
 
 /**
  * Базовый класс ошибок.
  *
- * Обеспечивает прямой доступ к {@link IErrorDetail}, коду ошибки {@link IErrorDetail.code} и форматированию к строке.
+ * Обеспечивает прямой доступ к {@link IErrorDetail} и форматированию к строке.
  */
-abstract class BaseError<T extends IErrorLike<any>> extends Error {
+abstract class BaseError<T extends IErrorLike<any> = IErrorLike<any>> extends Error {
   readonly detail: T
 
-  constructor(detail: T | Exclude<T, 'tostring'>) {
+  constructor(detail: T | Omit<T, 'toString' | 'toJSON'>) {
     super(detail.message ?? undefined)
     this.detail = isErrorLike(detail) ? detail : createErrorLike(detail, false)
     _writeNameAndStackOf(this.detail, this)
-  }
-
-  get code (): T['code'] {
-    return this.detail.code
   }
 
   override get name (): string {
@@ -107,6 +109,10 @@ abstract class BaseError<T extends IErrorLike<any>> extends Error {
 
   override toString (): string {
     return this.detail.toString()
+  }
+
+  toJSON (): Record<string, any> {
+    return this.detail.toJSON()
   }
 }
 
@@ -126,12 +132,13 @@ abstract class BaseError<T extends IErrorLike<any>> extends Error {
  * }
  * ```
  */
-class ErrorLikeCollection<T extends IErrorLike<any>> extends Array<T> implements IErrorLikeCollection<T> {
+class ErrorLikeCollection<T extends IErrorLike<any> = IErrorLike<any>> extends Array<T> implements IErrorLikeCollection<T> {
   protected _prefix: string
 
   /**
-   * @param prefix Имя поля для форматирования к строке. По молчанию `errors`.
+   * @param prefix Имя поля для форматирования к строке {@link toString()}. По молчанию `errors`.
    *               Поля будут именоваться как `errors.0: ... , errors.1: ... ` и т.д.
+   *               Для метода {@link toJSON()} создается объект с одним полем `{[prefix]: Record<string, any>}`.
    * @param iterable Массивоподобный объект с ошибками.
    */
   constructor(prefix?: undefined | null | string, iterable?: undefined | null | Iterable<any> | ArrayLike<any>) {
@@ -178,6 +185,14 @@ class ErrorLikeCollection<T extends IErrorLike<any>> extends Array<T> implements
     }
     return strings.join('\n')
   }
+
+  toJSON (): Record<string, any> {
+    const array: Record<string, any>[] = []
+    for (let i = 0; i < this.length; ++i) {
+      array.push(this[i]!.toJSON())
+    }
+    return { [this._prefix]: array }
+  }
 }
 
 /**
@@ -187,11 +202,10 @@ class ErrorLikeCollection<T extends IErrorLike<any>> extends Array<T> implements
  * @param captureStack Установка `true` вызывает `Error.captureStackTrace(detail)`.
  * @param construct Имя функции, котору надо исключить из стека. Смотри справку [Error.captureStackTrace(...)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/captureStackTrace)
  */
-function createErrorLike<T extends IErrorLike<any>> (detail: Exclude<T, 'tostring'>, captureStack?: undefined | null | boolean, construct?: undefined | null | Function): (IErrorDetail<T['code']> & T) {
+function createErrorLike<T extends IErrorLike<any> = IErrorLike<any>> (detail: Omit<T, 'toString' | 'toJSON'>, captureStack?: undefined | null | boolean, construct?: undefined | null | Function): T {
   const props: IErrorDetail<any> = (typeof detail === 'object' && detail !== null)
     ? detail
     : {
-      code: 0,
       message: 'IErrorLike was not created',
       level: 'error',
       cause: detail
@@ -267,7 +281,7 @@ function safeGetStringOf (obj: object, property: string): null | string {
   return null
 }
 
-function _errorDetailToList (detail: IErrorDetail<any>, temp: WeakSet<any>): string[] {
+function _errorDetailToList (detail: IErrorDetail<any>, seen: WeakSet<any>): string[] {
   const keys = new Set(Object.keys(detail))
   if (!keys.has('stack') && ('stack' in detail)) {
     keys.add('stack')
@@ -297,9 +311,9 @@ function _errorDetailToList (detail: IErrorDetail<any>, temp: WeakSet<any>): str
     try {
       const raw = Reflect.get(detail, 'cause')
       if (typeof raw === 'object' && raw !== null) {
-        if (!temp.has(raw)) {
-          temp.add(raw)
-          cause = _errorToString(raw, temp)
+        if (!seen.has(raw)) {
+          seen.add(raw)
+          cause = _errorToString(raw, seen)
         }
       }
       else if (typeof raw !== 'undefined' && raw !== null) {
@@ -314,7 +328,7 @@ function _errorDetailToList (detail: IErrorDetail<any>, temp: WeakSet<any>): str
     try {
       const raw = Reflect.get(detail, name)
       if (typeof raw === 'object' && raw !== null) {
-        temp.add(raw)
+        seen.add(raw)
       }
       if (typeof raw !== 'undefined' && raw !== null) {
         value = safeAnyToString(raw)
@@ -353,25 +367,47 @@ function errorDetailToString (detail: IErrorDetail<any>): string {
   return _errorDetailToList(detail, new WeakSet()).join('\n')
 }
 
-function _nativeErrorToString (error: Error, temp: WeakSet<any>): string {
+function _nativeErrorToString (error: Error, seen: WeakSet<any>): string {
   // Собственная ошибка уже извлекает имя
   const baseMessage = safeAnyToString(error)
-  const stack = safeGetStringOf(error, 'stack')
+  // Имя ошибки и сообщение уже есть в стеке - сохраняем что-то одно
+  let stackOrMsg = safeGetStringOf(error, 'stack')
+  let prop: null | 'stack' | 'message' | 'name' = null
+  if (stackOrMsg) {
+    prop = 'stack'
+  }
+  else {
+    // В сообщении не будет имени
+    const name = safeGetStringOf(error, 'name')
+    const message = safeGetStringOf(error, 'message')
+    if (name && message) {
+      stackOrMsg = `${name}: ${message}`
+      prop = 'message'
+    }
+    else if (message) {
+      stackOrMsg = message
+      prop = 'message'
+    }
+    else if (name) {
+      stackOrMsg = name
+      prop = 'name'
+    }
+  }
   let cause: null | string = null
   try {
     const raw = Reflect.get(error, 'cause')
     if (typeof raw === 'object' && raw !== null) {
-      if (!temp.has(raw)) {
-        temp.add(raw)
+      if (!seen.has(raw)) {
+        seen.add(raw)
         // Здесь может быть все что угодно, в том числе и наши ошибки
-        cause = _errorToString(raw, temp)
+        cause = _errorToString(raw, seen)
       }
     }
     else if (typeof raw !== 'undefined' && raw !== null) {
       cause = safeAnyToString(raw)
     }
   } catch (_) { /**/ }
-  return `${baseMessage}${stack ? `\nstack:\n${stack}` : ''}${cause ? `\ncause:\n${cause}` : ''}`
+  return `${baseMessage}${prop ? `\n${prop}:\n${stackOrMsg}` : ''}${cause ? `\ncause:\n${cause}` : ''}`
 }
 
 /**
@@ -383,18 +419,21 @@ function nativeErrorToString (error: Error): string {
   return _nativeErrorToString(error, new WeakSet())
 }
 
-function _errorToString (anyValue: any, temp: WeakSet<any>): null | string {
+function _errorToString (anyValue: any, seen: WeakSet<any>): null | string {
   // Сюда попадет вызов BaseError.toString()
   if (anyValue instanceof BaseError) {
-    return _errorDetailToList(anyValue.detail, temp).join('\n')
+    return _errorDetailToList(anyValue.detail, seen).join('\n')
+  }
+  if (anyValue instanceof ErrorLikeCollection) {
+    return anyValue.toString()
   }
   // Любая другая ошибка не связанная с интерфейсами BaseError
   if (anyValue instanceof Error) {
-    return _nativeErrorToString(anyValue, temp)
+    return _nativeErrorToString(anyValue, seen)
   }
   // Можно предположить что объект будет совместимым типом
   if (typeof anyValue === 'object' && anyValue !== null) {
-    return _errorDetailToList(anyValue, temp).join('\n')
+    return _errorDetailToList(anyValue, seen).join('\n')
   }
   // Неизвестное значение просто пытаемся привести к строке
   if (typeof anyValue !== 'undefined' && anyValue !== null) {
@@ -414,31 +453,270 @@ function errorToString (anyValue: any): string {
   return _errorToString(anyValue, new WeakSet()) ?? ''
 }
 
+//////////////////////////////////////////////////////////////
+
 /**
- * В среде vitest + playwright не работает Error.captureStackTrace(...)
- * Добавляем в vitest.config.ts -> env: { FIX_CAPTURE_STACK_TRACE: true } для эмуляции захвата стека через стандартные механизмы ошибки.
+ * Пытается преобразовать значение методом `toJSON()`. Возвращает любое значение исключая `undefined` и пустую строку.
+ * Вызывающие функции могут удостовериться в наличие значение простой проверкой `value !== null`.
  */
-void function () {
-  try {
-    const isTest = Reflect.get(globalThis, 'FIX_CAPTURE_STACK_TRACE')
-    if (typeof isTest === 'boolean' && isTest) {
-      (createErrorLike as any) = <T extends IErrorDetail<any>> (detail: T, captureStack?: null | undefined | boolean): IErrorLike<T['code']> => {
-        const props: IErrorDetail<any> = (typeof detail === 'object' && detail !== null)
-          ? detail
-          : {
-            code: 0,
-            message: 'IErrorLike was not created',
-            level: 'error',
-            cause: detail
-          }
-        if (captureStack) {
-          props.stack = (new Error()).stack ?? null
+function _safeAnyToJson (anyValue: any): null | unknown {
+  if (typeof anyValue === 'object' && anyValue !== null) {
+    try {
+      if ('toJSON' in anyValue) {
+        const value = anyValue.toJSON()
+        // Игнорируем пустые строки
+        if (typeof value !== 'undefined' && value !== '') {
+          return value
         }
-        return Object.assign(Object.create(ErrorLikeProto), props)
+      }
+    } catch (_) { /**/ }
+  }
+  return null
+}
+
+/**
+ * Возвращает примитивное значение или пытается привести любой тип к строке.
+ * Эта функция должна вызываться только для Не_Объектов - примитивов.
+ */
+function _safeAnyToPrimitive (anyValue: any): null | boolean | number | string {
+  if ((typeof anyValue === 'boolean') || Number.isFinite(anyValue) || (typeof anyValue === 'string' && anyValue.length > 0)) {
+    return anyValue
+  }
+  return safeAnyToString(anyValue)
+}
+
+/**
+ * Записывает значение на объект и возвращает результат записи хотя бы одного поля.
+ */
+function _copyObjectToTarget (target: Record<string, any>, source: object): boolean {
+  let ok = false
+  try {
+    for (const [key, value] of Object.entries(source)) {
+      target[key] = value
+      ok = true
+    }
+  } catch (_) { /**/ }
+  return ok
+}
+
+/**
+ * Пытается извлечь свойство и преобразовать к `JsonLike`. Возвратит `true` если поле было записано.
+ */
+function _tryExtractProperty (target: Record<string, any>, source: object, name: string, seen: WeakSet<any>): boolean {
+  let ok = false
+  try {
+    const raw = Reflect.get(source, name)
+    if (typeof raw !== 'undefined' && raw !== null) {
+      const isObj = typeof raw === 'object'
+      // Пропускаем рекурсивные записи
+      if (!isObj || !seen.has(raw)) {
+        if (isObj) {
+          seen.add(raw)
+        }
+        const temp = {}
+        const result = _errorToJsonLike(temp, raw, seen)
+        if (result[0] === 1) {
+          target[name] = temp
+          ok = true
+        }
+        else if (result[0] === 2) {
+          target[name] = result[1]
+          ok = true
+        }
       }
     }
   } catch (_) { /**/ }
-}()
+  return ok
+}
+
+/**
+ * Записывает поля ошибки в объект и возвращает результат записи:
+ *
+ *  + `[0, null]`    - Ничего не записано и значение не было извлечено.
+ *  + `[1, null]`    - На `target` записано хотя бы одно поле.
+ *  + `[2, unknown]` - Не удалось распознать объект, но во втором элементе одно из примитивных ненулевых значений.
+ *
+ * **Note** Результат описанный здесь используется во всех функциях ниже. Конкретно для этой функции вариант 3 игнорируется.
+ */
+function _errorDetailToJsonLike (target: Record<string, any>, detail: IErrorDetail<any>, seen: WeakSet<any>): [0, null] | [1, null] | [2, unknown] {
+  let ok = false
+
+  const keys = new Set(Object.keys(detail))
+  if (!keys.has('stack') && ('stack' in detail)) {
+    keys.add('stack')
+  }
+
+  // Обходим известные свойства
+  if (keys.has('code')) {
+    keys.delete('code')
+    try {
+      const code = Reflect.get(detail, 'code')
+      // Код может быть строкой или целым числом
+      if ((typeof code === 'string' && code.length > 0) || Number.isSafeInteger(code)) {
+        target.code = code
+        ok = true
+      }
+    } catch (_) { /**/ }
+  }
+  for (const name of ['name', 'message', 'level']) {
+    if (keys.has(name)) {
+      keys.delete(name)
+      // только строки
+      const value = safeGetStringOf(detail, name)
+      if (value) {
+        target[name] = value
+        ok = true
+      }
+    }
+  }
+
+  // Эти свойства предпочтительней разместить в конце
+  const hasStack = keys.delete('stack')
+  const hasCause = keys.delete('cause')
+
+  // Все остальные неизвестные поля.
+  for (const name of keys) {
+    if (_tryExtractProperty(target, detail, name, seen)) {
+      ok = true
+    }
+  }
+
+  if (hasStack) {
+    const stack = safeGetStringOf(detail, 'stack')
+    if (stack) {
+      target.stack = stack
+      ok = true
+    }
+  }
+  if (hasCause && _tryExtractProperty(target, detail, 'cause', seen)) {
+    ok = true
+  }
+
+  return [ok ? 1 : 0, null]
+}
+
+/**
+ * Приводит {@link IErrorDetail} к `JsonLike` объекту.
+ *
+ * @param detail Объект деталей ошибки.
+ */
+function errorDetailToJsonLike (detail: IErrorDetail<any>): Record<string, any> {
+  const target = {} as Record<string, any>
+  const result = _errorDetailToJsonLike(target, detail, new WeakSet())
+  if (result[0] === 2) {
+    target.__value = result[1]
+  }
+  return target
+}
+
+/**
+ * Записывает поля ошибки в объект и возвращает результат записи.
+ */
+function _nativeErrorToJsonLike (target: Record<string, any>, error: Error, seen: WeakSet<any>): [0, null] | [1, null] | [2, unknown] {
+  let ok = false
+  // Прежде всего пытаемся привести ошибку методом toJSON().
+  let value = _safeAnyToJson(error)
+  // Если это был объект, то будем считать что поля определены пользовательской ошибкой и не могут быть изменены.
+  if (value !== null && typeof value === 'object' && _copyObjectToTarget(target, value)) {
+    return [1, null]
+  }
+  const name = safeGetStringOf(error, 'name')
+  if (name) {
+    target.name = name
+    ok = true
+  }
+  const message = safeGetStringOf(error, 'message')
+  if (message) {
+    target.message = message
+    ok = true
+  }
+  const stack = safeGetStringOf(error, 'stack')
+  if (stack) {
+    target.stack = stack
+    ok = true
+  }
+  if (_tryExtractProperty(target, error, 'cause', seen)) {
+    ok = true
+  }
+  // Если нет ни одной записи в объект, смотрим было ли у нас примитивное значение
+  if (!ok) {
+    // Если нет и value - пытаемся получить любое значение
+    if (value !== null || ((value = _safeAnyToPrimitive(error)) !== null)) {
+      return [2, value]
+    }
+  }
+  return [ok ? 1 : 0, null]
+}
+
+/**
+ * Извлекает `name`, `message`, `stack` и `cause` из стандартной ошибки. Если ошибка имеет метод `toJSON()`, который возвращает
+ * объект, функция возвратит результат `toJSON()` без чтения свойств.
+ *
+ * @param error Должен быть типом {@link Error}.
+ */
+function nativeErrorToJsonLike (error: Error): Record<string, any> {
+  const target = {} as Record<string, any>
+  const result = _nativeErrorToJsonLike(target, error, new WeakSet())
+  if (result[0] === 2) {
+    target.__value = result[1]
+  }
+  return target
+}
+
+/**
+ * Записывает поля ошибки в объект и возвращает результат записи.
+ */
+function _errorToJsonLike (target: Record<string, any>, anyValue: any, seen: WeakSet<any>): [0, null] | [1, null] | [2, unknown] {
+  // Сюда попадет вызов BaseError.toJSON()
+  if (anyValue instanceof BaseError) {
+    return _errorDetailToJsonLike(target, anyValue.detail, seen)
+  }
+  if (anyValue instanceof ErrorLikeCollection) {
+    const obj = anyValue.toJSON()
+    let ok = false
+    for (const [key, value] of Object.entries(obj)) {
+      target[key] = value
+      ok = true
+    }
+    return [ok ? 1 : 0, null]
+  }
+  // Любая другая ошибка не связанная с интерфейсами BaseError
+  if (anyValue instanceof Error) {
+    return _nativeErrorToJsonLike(target, anyValue, seen)
+  }
+  // Можно предположить что объект будет IErrorLike или совместимым типом
+  if (typeof anyValue === 'object' && anyValue !== null) {
+    return _errorDetailToJsonLike(target, anyValue, seen)
+  }
+  // Неизвестное значение - пытаемся привести к любому типу
+  if (typeof anyValue !== 'undefined' && anyValue !== null) {
+    const value = _safeAnyToJson(anyValue) ?? _safeAnyToPrimitive(anyValue)
+    if (value !== null) {
+      if (typeof value === 'object') {
+        return [_copyObjectToTarget(target, value) ? 1 : 0, null]
+      }
+      return [2, value]
+    }
+  }
+  return [0, null]
+}
+
+/**
+ * Универсальная функция извлечения `JsonLike` объекта из ошибки.
+ *
+ * Эта функция всегда возвращает `Record<string, any>`, даже если объект или значение оказались пустыми. Если значение
+ * ненулевое и не может быть приведено к объекту, объект установит единственное свойство `{__value: ...}`.
+ *
+ * @param anyValue Предполагаемая ошибка.
+ */
+function errorToJsonLike (anyValue: any): Record<string, any> {
+  const target = {} as Record<string, any>
+  const result = _errorToJsonLike(target, anyValue, new WeakSet())
+  if (result[0] === 2) {
+    target.__value = result[1]
+  }
+  return target
+}
 
 export {
   type TErrorLevel,
@@ -457,5 +735,8 @@ export {
   errorDetailToList,
   errorDetailToString,
   nativeErrorToString,
-  errorToString
+  errorToString,
+  errorDetailToJsonLike,
+  nativeErrorToJsonLike,
+  errorToJsonLike
 }
