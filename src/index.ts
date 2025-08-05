@@ -47,7 +47,7 @@ interface IErrorDetail<TCode extends number | string = number | string> {
    */
   level?: undefined | null | TErrorLevel
   /**
-   * Может быть установлен явно, или взят из {@link Error} если поле извлекается из ошибки.
+   * Может быть установлен явно, или взято из {@link Error} если поле извлекается из ошибки.
    */
   stack?: undefined | null | string
   /**
@@ -119,15 +119,18 @@ abstract class BaseError<T extends IErrorLike<any> = IErrorLike<any>> extends Er
 /**
  * Массив ошибок реализующий {@link IErrorLikeCollection}.
  *
- * **Warning**: Не устанавливайте элементы присвоением индексов, это невозможно проверить.
+ * **Warning:** Не устанавливайте элементы присвоением индексов, это невозможно проверить.
  * Методы `push()/unshift()/splice()` предварительно проверяют тип и принудительно приводят элемент к {@link IErrorLike}.
  * Другие методы не реализованы и могут возвратить не то что ожидается.
+ *
+ * Коллекция не служит контейнером для хранения ошибок, а используется как конвертер к `string` или `JsonLike`.
+ * Из инстансов {@link BaseError}, добавляемых к коллекции, будут извлечены структуры {@link IErrorLike}.
  *
  * Применяйте массив для агрегирования нескольких ошибок в одно поле {@link IErrorDetail}:
  *
  * ```ts
- * const detail = {
- *   // будет правильно преобразовано к строке с несколькими ошибками
+ * const detail: IErrorDetail = {
+ *   // будет правильно преобразовано к строке или JsonLike с несколькими ошибками
  *   warnings: new ErrorLikeCollection('warnings', [{code: 1, level: 'warning'}])
  * }
  * ```
@@ -220,6 +223,8 @@ function createErrorLike<T extends IErrorLike<any> = IErrorLike<any>> (detail: O
  * Проверяет тип `maybeError` и возвращает {@link IErrorLike}. Если аргумент `maybeError` ошибка {@link BaseError}
  * извлекается свойство `detail`, иначе явно вызывается {@link createErrorLike}.
  *
+ * **Warning:** Нативная или неизвестная ошибка {@link Error} интерпретируется как обычный объект и передается в {@link createErrorLike()}.
+ *
  * Параметр типа `T` может использоваться для удобства типизации.
  *
  * @param maybeError Предполагаемый тип совместимый с {@link IErrorLike}.
@@ -245,6 +250,9 @@ function _writeNameAndStackOf<T extends IErrorDetail<any>> (detail: T, error: Er
 
 /**
  * Имеет ли `maybeLikeError` в своем прототипе {@link ErrorLikeProto}.
+ *
+ * **Warning:** Предполагается что объекты {@link IErrorLike} созданы через {@link createErrorLike()}. Прототип
+ * проверяется только на верхнем уровне.
  *
  * @param maybeLikeError Предполагаемый объект ошибки.
  */
