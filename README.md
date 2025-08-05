@@ -101,7 +101,7 @@ const asString = `${aggregateError}`
 
 ```json
 "peerDependencies": {
-  "js-base-error": "^0.3.0"
+  "js-base-error": "0.3.0"
 }
 ```
 
@@ -109,9 +109,9 @@ const asString = `${aggregateError}`
 
 ```json
 "dependencies": {
-  "js-base-error": "^0.3.0"
+  "js-base-error": "0.3.0"
 },
 "overrides": {
-  "js-base-error": "^0.3.0"
+  "js-base-error": "0.3.0"
 }
 ```
