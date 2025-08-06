@@ -3,7 +3,7 @@ import { describe, test, expect } from 'vitest'
 /**
  * Пример использования базовых интерфейсов.
  */
-import { type IErrorLike, BaseError, createErrorLike, errorToString, isErrorLike } from './index.js'
+import { type IErrorLike as IErrorLike_, BaseError, createErrorLike, errorToString, isErrorLike } from './index.js'
 
 // # 1. Определяем коды ошибок.
 
@@ -17,9 +17,13 @@ type TErrorCodes = typeof errorCodes
 /** Коды ошибок. */
 type TErrorCode = TErrorCodes[keyof TErrorCodes]
 
+interface IErrorLike extends IErrorLike_ {
+  code: TErrorCode
+}
+
 // # 2. Определяем базовую ошибку библиотеки.
 
-class BaseLibError extends BaseError<IErrorLike<TErrorCode>> { }
+class BaseLibError extends BaseError<IErrorLike> { }
 
 // # 3. Стратегия генерации ошибок с помощью конструктора.
 
@@ -34,7 +38,7 @@ class UnknownError extends BaseLibError {
 //      имеет метод форматирования к строке
 
 const errorDetails = Object.freeze({
-  ValueError (message: string, captureStack?: null | undefined | boolean, cause?: undefined | null | unknown) {
+  ValueError (message: string, captureStack?: null | undefined | boolean, cause?: undefined | null | unknown): IErrorLike {
     return createErrorLike({
       name: 'ValueError',
       code: errorCodes.ValueError,
@@ -55,7 +59,6 @@ describe('Example Usage Integration', () => {
     expect(err).toBeInstanceOf(UnknownError)
     expect(err.detail.code).toBe(errorCodes.UnknownError)
     expect(err.message).toBe('Something unknown happened')
-    expect(err.level).toBe('error') // Default from BaseError
 
     const str = err.toString()
     expect(str).toContain(`code: ${errorCodes.UnknownError}`)
@@ -85,7 +88,6 @@ describe('Example Usage Integration', () => {
     expect(err.detail.code).toBe(errorCodes.ValueError)
     expect(err.message).toBe('Input is not a number') // From super(detail.message)
     expect(err.detail.name).toBe('ValueError') // Name from errorDetail
-    expect(err.level).toBe('error') // Default from BaseError
 
     const str = err.toString()
     expect(str).toContain(`code: ${errorCodes.ValueError}`)
@@ -143,12 +145,12 @@ test('Error formatting', () => {
   (err.detail.cause as any).detail.stack = null
   const str = `${err}`
 
-  const expected = `name: ValueError
-code: 1
+  const expected = `code: 1
+name: ValueError
 message: base error
 cause:
-name: UnknownError
 code: 0
+name: UnknownError
 message: uncertainty`
 
   expect(str).toContain(expected)

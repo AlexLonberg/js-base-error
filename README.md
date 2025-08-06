@@ -45,7 +45,7 @@ const errorCodes = Object.freeze({
 } as const)
 type TErrorCode = typeof errorCodes[keyof typeof errorCodes]
 
-class ValueError extends BaseError<IErrorLike<TErrorCode>> {
+class ValueError extends BaseError<IErrorLike> {
   constructor(message: string, cause?: unknown) {
     super({ 
       name: 'MyLib.ValueError', 
@@ -57,8 +57,8 @@ class ValueError extends BaseError<IErrorLike<TErrorCode>> {
 }
 
 const asString = `${new ValueError('Oh no 😮', '🕷️')}`
-// name: MyLib.ValueError
 // code: 1
+// name: MyLib.ValueError
 // message: Oh no 😮
 // stack:
 // ...
@@ -69,8 +69,7 @@ const asString = `${new ValueError('Oh no 😮', '🕷️')}`
 Для комбинированных ошибок используйте `ErrorLikeCollection`:
 
 ```ts
-// Мы можем не создавать экземпляр BaseError
-// а завернуть ошибку в IErrorLike с методом toString()
+// Можно не создавать экземпляр BaseError, а завернуть ошибку в IErrorLike
 const aggregateError = createErrorLike({
   code: 0x1001,
   name: 'MyLib.AggregateError',
@@ -81,8 +80,8 @@ isErrorLike(aggregateError) // true
 
 // Поле массива 'errors' будет приведено к именованным индексам
 const asString = `${aggregateError}`
-// name: MyLib.AggregateError
 // code: 4097
+// name: MyLib.AggregateError
 // errors.0:
 // ...
 // errors.1:
@@ -101,7 +100,7 @@ const asString = `${aggregateError}`
 
 ```json
 "peerDependencies": {
-  "js-base-error": "0.3.0"
+  "js-base-error": "0.4.0"
 }
 ```
 
@@ -109,9 +108,9 @@ const asString = `${aggregateError}`
 
 ```json
 "dependencies": {
-  "js-base-error": "0.3.0"
+  "js-base-error": "0.4.0"
 },
 "overrides": {
-  "js-base-error": "0.3.0"
+  "js-base-error": "0.4.0"
 }
 ```

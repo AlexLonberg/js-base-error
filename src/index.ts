@@ -14,7 +14,12 @@ const captureStackTrace = ((): ((target: object, construct?: undefined | null | 
         }
         const temp = {}
         cstBind(temp, construct)
-        Reflect.set(target, 'stack', Reflect.get(temp, 'stack'))
+        Object.defineProperty(target, 'stack', {
+          configurable: true,
+          writable: true,
+          enumerable: true,
+          value: Reflect.get(temp, 'stack')
+        })
       }
     }
   } catch (_) { /**/ }
@@ -27,13 +32,13 @@ const captureStackTrace = ((): ((target: object, construct?: undefined | null | 
 type TErrorLevel = 'info' | 'warning' | 'error' | 'debug'
 
 /**
- * Базовый интерфейс деталей ошибки.
+ * Базовый интерфейс деталей ошибки с минимальным набором распространенных свойств.
  */
-interface IErrorDetail<TCode extends number | string = number | string> {
+interface IErrorDetail {
   /**
    * Необязательное поле кода ошибки.
    */
-  code?: undefined | null | TCode
+  code?: undefined | null | number | string
   /**
    * Необязательное поле имя ошибки. Может быть установлено явно или будет извлечено из {@link Error}.
    */
@@ -57,9 +62,9 @@ interface IErrorDetail<TCode extends number | string = number | string> {
 }
 
 /**
- * Расширяет {@link IErrorDetail} методом форматирования `toString()` и `toJSON()`.
+ * Расширяет {@link IErrorDetail} методами форматирования `toString()` и `toJSON()`.
  */
-interface IErrorLike<TCode extends number | string = number | string> extends IErrorDetail<TCode> {
+interface IErrorLike extends IErrorDetail {
   toString (): string
   toJSON (): Record<string, any>
 }
@@ -68,7 +73,7 @@ interface IErrorLike<TCode extends number | string = number | string> extends IE
  * Массив ошибок с методом автоматического преобразования `toString()` всех вложенных {@link IErrorLike} к строке или
  * `toJSON()` к объекту `{errors: Record<string, any>[]}`.
  */
-interface IErrorLikeCollection<T extends IErrorLike<any> = IErrorLike<any>> extends Array<T> {
+interface IErrorLikeCollection<T extends IErrorLike = IErrorLike> extends Array<T> {
   toString (): string
   toJSON (): Record<string, any>
 }
@@ -78,19 +83,19 @@ interface IErrorLikeCollection<T extends IErrorLike<any> = IErrorLike<any>> exte
  */
 const ErrorLikeProto = Object.freeze({
   toString (): string {
-    return errorDetailToString(this as IErrorDetail<any>)
+    return errorDetailToString(this as IErrorLike)
   },
   toJSON (): Record<string, any> {
-    return errorDetailToJsonLike(this as IErrorDetail<any>)
+    return errorDetailToJsonLike(this as IErrorLike)
   }
 } as const)
 
 /**
  * Базовый класс ошибок.
  *
- * Обеспечивает прямой доступ к {@link IErrorDetail} и форматированию к строке.
+ * Обеспечивает прямой доступ к {@link IErrorLike} и форматированию к строке.
  */
-abstract class BaseError<T extends IErrorLike<any> = IErrorLike<any>> extends Error {
+abstract class BaseError<T extends IErrorLike = IErrorLike> extends Error {
   readonly detail: T
 
   constructor(detail: T | Omit<T, 'toString' | 'toJSON'>) {
@@ -101,10 +106,6 @@ abstract class BaseError<T extends IErrorLike<any> = IErrorLike<any>> extends Er
 
   override get name (): string {
     return this.detail.name ?? super.name
-  }
-
-  get level (): TErrorLevel {
-    return this.detail.level ?? 'error'
   }
 
   override toString (): string {
@@ -135,7 +136,7 @@ abstract class BaseError<T extends IErrorLike<any> = IErrorLike<any>> extends Er
  * }
  * ```
  */
-class ErrorLikeCollection<T extends IErrorLike<any> = IErrorLike<any>> extends Array<T> implements IErrorLikeCollection<T> {
+class ErrorLikeCollection<T extends IErrorLike = IErrorLike> extends Array<T> implements IErrorLikeCollection<T> {
   protected _prefix: string
 
   /**
@@ -198,6 +199,17 @@ class ErrorLikeCollection<T extends IErrorLike<any> = IErrorLike<any>> extends A
   }
 }
 
+function _reserveErrorLike<T extends IErrorLike = IErrorLike> (props: object): T {
+  const keys = Object.keys(props)
+  const target = Object.create(ErrorLikeProto)
+  for (const key of keys) {
+    try {
+      target[key] = (props as any)[key]
+    } catch (_) { /**/ }
+  }
+  return target
+}
+
 /**
  * Создает {@link IErrorLike} добавляя прототип {@link ErrorLikeProto} форматирования объекта к строке.
  *
@@ -205,8 +217,8 @@ class ErrorLikeCollection<T extends IErrorLike<any> = IErrorLike<any>> extends A
  * @param captureStack Установка `true` вызывает `Error.captureStackTrace(detail)`.
  * @param construct Имя функции, котору надо исключить из стека. Смотри справку [Error.captureStackTrace(...)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/captureStackTrace)
  */
-function createErrorLike<T extends IErrorLike<any> = IErrorLike<any>> (detail: Omit<T, 'toString' | 'toJSON'>, captureStack?: undefined | null | boolean, construct?: undefined | null | Function): T {
-  const props: IErrorDetail<any> = (typeof detail === 'object' && detail !== null)
+function createErrorLike<T extends IErrorLike = IErrorLike> (detail: Omit<T, 'toString' | 'toJSON'>, captureStack?: undefined | null | boolean, construct?: undefined | null | Function): T {
+  const props: IErrorDetail = (typeof detail === 'object' && detail !== null)
     ? detail
     : {
       message: 'IErrorLike was not created',
@@ -216,7 +228,12 @@ function createErrorLike<T extends IErrorLike<any> = IErrorLike<any>> (detail: O
   if (captureStack) {
     captureStackTrace(props, construct)
   }
-  return Object.assign(Object.create(ErrorLikeProto), props)
+  try {
+    // геттеры с ошибками могу поднять исключение
+    return Object.assign(Object.create(ErrorLikeProto), props)
+  } catch (_) {
+    return _reserveErrorLike(props)
+  }
 }
 
 /**
@@ -229,7 +246,7 @@ function createErrorLike<T extends IErrorLike<any> = IErrorLike<any>> (detail: O
  *
  * @param maybeError Предполагаемый тип совместимый с {@link IErrorLike}.
  */
-function ensureErrorLike<T extends IErrorLike<any> = IErrorLike<any>> (maybeError: any): T {
+function ensureErrorLike<T extends IErrorLike = IErrorLike> (maybeError: any): T {
   if (isErrorLike(maybeError)) {
     return maybeError as T
   }
@@ -239,7 +256,7 @@ function ensureErrorLike<T extends IErrorLike<any> = IErrorLike<any>> (maybeErro
   return createErrorLike(maybeError)
 }
 
-function _writeNameAndStackOf<T extends IErrorDetail<any>> (detail: T, error: Error): void {
+function _writeNameAndStackOf<T extends IErrorDetail> (detail: T, error: Error): void {
   if (typeof detail.name !== 'string') {
     detail.name = error.constructor.name
   }
@@ -256,7 +273,7 @@ function _writeNameAndStackOf<T extends IErrorDetail<any>> (detail: T, error: Er
  *
  * @param maybeLikeError Предполагаемый объект ошибки.
  */
-function isErrorLike (maybeLikeError: any): maybeLikeError is IErrorLike<any> {
+function isErrorLike (maybeLikeError: any): maybeLikeError is IErrorLike {
   return typeof maybeLikeError === 'object' && maybeLikeError !== null && (Object.getPrototypeOf(maybeLikeError) === ErrorLikeProto)
 }
 
@@ -283,23 +300,55 @@ function safeGetStringOf (obj: object, property: string): null | string {
   try {
     const value = Reflect.get(obj, property)
     if (typeof value !== 'undefined' && value !== null && value !== '') {
-      return safeAnyToString(value)
+      const str = value.toString()
+      if (typeof str === 'string' && str.length > 0) {
+        return str
+      }
     }
   } catch (_) { /**/ }
   return null
 }
 
-function _errorDetailToList (detail: IErrorDetail<any>, seen: WeakSet<any>): string[] {
-  const keys = new Set(Object.keys(detail))
-  if (!keys.has('stack') && ('stack' in detail)) {
-    keys.add('stack')
+function _extractStringOf (detail: IErrorDetail, prop: string, seen: WeakSet<any>): null | string {
+  let raw: any
+  try {
+    raw = Reflect.get(detail, prop)
+  } catch (_) { /* */ }
+  let result: null | string = null
+  const vt = typeof raw
+  if (vt !== 'undefined' && raw !== null) {
+    if (vt === 'object') {
+      if (!seen.has(raw)) {
+        seen.add(raw)
+        result = _errorToString(raw, seen)
+      }
+    }
+    else {
+      result = safeAnyToString(raw)
+    }
   }
+  return result
+}
+
+function _errorDetailToList (detail: IErrorDetail, seen: WeakSet<any>): string[] {
+  const keys = new Set(Object.keys(detail))
+
   const fields: string[] = []
   let stack: null | string = null
   let cause: null | string = null
 
   // Обходим известные свойства
-  for (const name of ['name', 'code', 'message', 'level']) {
+  if (keys.has('code')) {
+    keys.delete('code')
+    try {
+      const code = Reflect.get(detail, 'code')
+      // Код может быть строкой или целым числом
+      if ((typeof code === 'string' && code.length > 0) || Number.isSafeInteger(code)) {
+        fields.push(`code: ${code}`)
+      }
+    } catch (_) { /**/ }
+  }
+  for (const name of ['name', 'message', 'level']) {
     if (keys.has(name)) {
       keys.delete(name)
       const value = safeGetStringOf(detail, name)
@@ -316,32 +365,12 @@ function _errorDetailToList (detail: IErrorDetail<any>, seen: WeakSet<any>): str
   }
   if (keys.has('cause')) {
     keys.delete('cause')
-    try {
-      const raw = Reflect.get(detail, 'cause')
-      if (typeof raw === 'object' && raw !== null) {
-        if (!seen.has(raw)) {
-          seen.add(raw)
-          cause = _errorToString(raw, seen)
-        }
-      }
-      else if (typeof raw !== 'undefined' && raw !== null) {
-        cause = safeAnyToString(raw)
-      }
-    } catch (_) { /**/ }
+    cause = _extractStringOf(detail, 'cause', seen)
   }
 
   // Все остальные свойства приводятся к строке.
   for (const name of keys) {
-    let value: null | string = null
-    try {
-      const raw = Reflect.get(detail, name)
-      if (typeof raw === 'object' && raw !== null) {
-        seen.add(raw)
-      }
-      if (typeof raw !== 'undefined' && raw !== null) {
-        value = safeAnyToString(raw)
-      }
-    } catch (_) { /**/ }
+    const value = _extractStringOf(detail, name, seen)
     if (value) {
       fields.push(`${name}: ${value}`)
     }
@@ -362,8 +391,8 @@ function _errorDetailToList (detail: IErrorDetail<any>, seen: WeakSet<any>): str
  *
  * @param detail Обязательно должен быть объектом.
  */
-function errorDetailToList (detail: IErrorDetail<any>): string[] {
-  return _errorDetailToList(detail, new WeakSet())
+function errorDetailToList (detail: IErrorDetail): string[] {
+  return _errorDetailToList(detail, new WeakSet([detail]))
 }
 
 /**
@@ -371,13 +400,13 @@ function errorDetailToList (detail: IErrorDetail<any>): string[] {
  *
  * @param detail Объект деталей ошибки.
  */
-function errorDetailToString (detail: IErrorDetail<any>): string {
-  return _errorDetailToList(detail, new WeakSet()).join('\n')
+function errorDetailToString (detail: IErrorDetail): string {
+  return _errorDetailToList(detail, new WeakSet([detail])).join('\n')
 }
 
 function _nativeErrorToString (error: Error, seen: WeakSet<any>): string {
   // Собственная ошибка уже извлекает имя
-  const baseMessage = safeAnyToString(error)
+  // const baseMessage = safeAnyToString(error)
   // Имя ошибки и сообщение уже есть в стеке - сохраняем что-то одно
   let stackOrMsg = safeGetStringOf(error, 'stack')
   let prop: null | 'stack' | 'message' | 'name' = null
@@ -401,21 +430,12 @@ function _nativeErrorToString (error: Error, seen: WeakSet<any>): string {
       prop = 'name'
     }
   }
-  let cause: null | string = null
-  try {
-    const raw = Reflect.get(error, 'cause')
-    if (typeof raw === 'object' && raw !== null) {
-      if (!seen.has(raw)) {
-        seen.add(raw)
-        // Здесь может быть все что угодно, в том числе и наши ошибки
-        cause = _errorToString(raw, seen)
-      }
-    }
-    else if (typeof raw !== 'undefined' && raw !== null) {
-      cause = safeAnyToString(raw)
-    }
-  } catch (_) { /**/ }
-  return `${baseMessage}${prop ? `\n${prop}:\n${stackOrMsg}` : ''}${cause ? `\ncause:\n${cause}` : ''}`
+  const cause = _extractStringOf(error, 'cause', seen)
+  if (prop) {
+    return `${prop}:\n${stackOrMsg}${cause ? `\ncause:\n${cause}` : ''}`
+  }
+  stackOrMsg = safeAnyToString(error)
+  return `${stackOrMsg ?? ''}${cause ? `\ncause:\n${cause}` : ''}`
 }
 
 /**
@@ -424,7 +444,7 @@ function _nativeErrorToString (error: Error, seen: WeakSet<any>): string {
  * @param error Должен быть типом {@link Error}.
  */
 function nativeErrorToString (error: Error): string {
-  return _nativeErrorToString(error, new WeakSet())
+  return _nativeErrorToString(error, new WeakSet([error]))
 }
 
 function _errorToString (anyValue: any, seen: WeakSet<any>): null | string {
@@ -458,7 +478,8 @@ function _errorToString (anyValue: any, seen: WeakSet<any>): null | string {
  * @param anyValue Предполагаемая ошибка.
  */
 function errorToString (anyValue: any): string {
-  return _errorToString(anyValue, new WeakSet()) ?? ''
+  const set = (typeof anyValue === 'object' && anyValue !== null) ? new WeakSet([anyValue]) : new WeakSet()
+  return _errorToString(anyValue, set) ?? ''
 }
 
 /**
@@ -544,13 +565,9 @@ function _tryExtractProperty (target: Record<string, any>, source: object, name:
  *
  * **Note** Результат описанный здесь используется во всех функциях ниже. Конкретно для этой функции вариант 3 игнорируется.
  */
-function _errorDetailToJsonLike (target: Record<string, any>, detail: IErrorDetail<any>, seen: WeakSet<any>): [0, null] | [1, null] | [2, unknown] {
+function _errorDetailToJsonLike (target: Record<string, any>, detail: IErrorDetail, seen: WeakSet<any>): [0, null] | [1, null] | [2, unknown] {
   let ok = false
-
   const keys = new Set(Object.keys(detail))
-  if (!keys.has('stack') && ('stack' in detail)) {
-    keys.add('stack')
-  }
 
   // Обходим известные свойства
   if (keys.has('code')) {
@@ -606,9 +623,9 @@ function _errorDetailToJsonLike (target: Record<string, any>, detail: IErrorDeta
  *
  * @param detail Объект деталей ошибки.
  */
-function errorDetailToJsonLike (detail: IErrorDetail<any>): Record<string, any> {
+function errorDetailToJsonLike (detail: IErrorDetail): Record<string, any> {
   const target = {} as Record<string, any>
-  const result = _errorDetailToJsonLike(target, detail, new WeakSet())
+  const result = _errorDetailToJsonLike(target, detail, new WeakSet([detail]))
   if (result[0] === 2) {
     target.__value = result[1]
   }
@@ -662,7 +679,7 @@ function _nativeErrorToJsonLike (target: Record<string, any>, error: Error, seen
  */
 function nativeErrorToJsonLike (error: Error): Record<string, any> {
   const target = {} as Record<string, any>
-  const result = _nativeErrorToJsonLike(target, error, new WeakSet())
+  const result = _nativeErrorToJsonLike(target, error, new WeakSet([error]))
   if (result[0] === 2) {
     target.__value = result[1]
   }
@@ -717,7 +734,8 @@ function _errorToJsonLike (target: Record<string, any>, anyValue: any, seen: Wea
  */
 function errorToJsonLike (anyValue: any): Record<string, any> {
   const target = {} as Record<string, any>
-  const result = _errorToJsonLike(target, anyValue, new WeakSet())
+  const set = (typeof anyValue === 'object' && anyValue !== null) ? new WeakSet([anyValue]) : new WeakSet()
+  const result = _errorToJsonLike(target, anyValue, set)
   if (result[0] === 2) {
     target.__value = result[1]
   }

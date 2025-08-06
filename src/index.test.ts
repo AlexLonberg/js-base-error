@@ -50,7 +50,7 @@ import {
 
 test('should create an IErrorLike object with default values', () => {
   const detail = { code: 1, message: 'Test message' }
-  const errorLike: IErrorLike<number> = createErrorLike(detail)
+  const errorLike: IErrorLike = createErrorLike(detail)
   expect(errorLike.code).toBe(1)
   expect(errorLike.message).toBe('Test message')
   expect(errorLike.level).toBeUndefined() // По умолчанию не устанавливается
@@ -64,6 +64,16 @@ test('should create an IErrorLike object with default values', () => {
 test('should use ErrorLikeProto', () => {
   const errorLike = createErrorLike({ code: 1, message: 'Test' })
   expect(Object.getPrototypeOf(errorLike)).toBe(ErrorLikeProto)
+})
+
+test('should ignore the property with an error', () => {
+  const errorLike = createErrorLike({
+    name: 'Test',
+    get message (): string {
+      throw 0
+    }
+  })
+  expect(errorLike).toStrictEqual({ name: 'Test' })
 })
 
 test('should handle non-object detail by creating a default error', () => {
@@ -91,7 +101,7 @@ test('should call captureStackTrace if captureStack is true', () => {
 })
 
 test('should correctly assign all IErrorDetail properties', () => {
-  const detail: IErrorDetail<string> = {
+  const detail: IErrorDetail = {
     code: 'C100',
     message: 'Full detail',
     name: 'CustomError',
@@ -122,8 +132,11 @@ test('should correctly assign all IErrorDetail properties', () => {
 })
 
 describe('BaseError', () => {
-  class DefaultError extends BaseError<IErrorLike<number>> { }
-  class TestError extends BaseError<IErrorLike<number>> {
+  interface IErrorLikeEx extends IErrorLike {
+    code: number
+  }
+  class DefaultError extends BaseError<IErrorLike> { }
+  class TestError extends BaseError<IErrorLikeEx> {
     constructor(code: number, message: string, level?: TErrorLevel) {
       super({ code, message, level })
     }
@@ -141,13 +154,6 @@ describe('BaseError', () => {
     expect(err.detail.code).toBe(101)
     expect(err.detail.message).toBe('Detail access')
     expect(err.detail.level).toBe('info')
-    expect(err.level).toBe('info')
-  })
-
-  test('should default level to "error" if not provided', () => {
-    const err = new TestError(102, 'Default level')
-    expect(err.level).toBe('error')
-    expect(err.detail.level).toBeUndefined() // detail.level может быть undefined
   })
 
   test('should set name and stack in detail from the Error instance', () => {
@@ -170,7 +176,7 @@ describe('BaseError', () => {
   })
 
   test('constructor should prioritize detail.name and detail.stack if provided', () => {
-    const detailWithNameAndStack: IErrorDetail<number> = {
+    const detailWithNameAndStack: IErrorDetail = {
       message: 'Custom name and stack',
       name: 'ExplicitName',
       stack: 'ExplicitStack\n  at foo (bar.js:1:1)'
@@ -216,7 +222,7 @@ describe('safeGetStringOf', () => {
 })
 
 describe('errorDetailToString / errorDetailToList', () => {
-  const baseDetail: IErrorDetail<string> = {
+  const baseDetail: IErrorDetail = {
     code: 'D100',
     message: 'Detail message',
   }
@@ -233,7 +239,7 @@ describe('errorDetailToString / errorDetailToList', () => {
   })
 
   test('should include level and name', () => {
-    const detail: IErrorDetail<string> = { ...baseDetail, level: 'warning', name: 'MyDetailError' }
+    const detail: IErrorDetail = { ...baseDetail, level: 'warning', name: 'MyDetailError' }
     const str = errorDetailToString(detail)
     expect(str).toContain('name: MyDetailError')
     expect(str).toContain('level: warning')
@@ -244,26 +250,26 @@ describe('errorDetailToString / errorDetailToList', () => {
 
   test('should include stack and cause', () => {
     const causeError = new Error('Root cause')
-    const detail: IErrorDetail<string> = {
+    const detail: IErrorDetail = {
       ...baseDetail,
       stack: 'Error: Detail message\n  at someFunc (file.js:10:5)',
       cause: causeError,
     }
     const str = errorDetailToString(detail)
     expect(str).toContain('stack:\nError: Detail message')
-    expect(str).toContain('cause:\nError: Root cause') // nativeErrorToString для cause
+    expect(str).toContain('cause:\nstack:\nError: Root cause') // nativeErrorToString для cause
   })
 
   test('should handle nested IErrorDetail in cause', () => {
-    const nestedDetail: IErrorDetail<number> = { code: 99, message: 'Nested detail' }
-    const detail: IErrorDetail<string> = { ...baseDetail, cause: nestedDetail }
+    const nestedDetail: IErrorDetail = { code: 99, message: 'Nested detail' }
+    const detail: IErrorDetail = { ...baseDetail, cause: nestedDetail }
     const str = errorDetailToString(detail)
     expect(str).toContain('cause:\ncode: 99\nmessage: Nested detail')
   })
 
   test('should handle circular dependencies in cause gracefully (WeakSet)', () => {
-    const detailA: IErrorDetail<string> = { code: 'A', message: 'Detail A' }
-    const detailB: IErrorDetail<string> = { code: 'B', message: 'Detail B' }
+    const detailA: IErrorDetail = { code: 'A', message: 'Detail A' }
+    const detailB: IErrorDetail = { code: 'B', message: 'Detail B' }
     detailA.cause = detailB
     detailB.cause = detailA // Circular
     // В зависимости от того, как WeakSet обрабатывает, повторного вывода detailA не будет или будет пустота
@@ -276,7 +282,11 @@ describe('errorDetailToString / errorDetailToList', () => {
   })
 
   test('should list other properties', () => {
-    const detail: IErrorDetail<string> & { customField: string, numField: number } = {
+    interface IErrorDetailEx extends IErrorDetail {
+      customField: string
+      numField: number
+    }
+    const detail: IErrorDetailEx = {
       ...baseDetail,
       customField: 'Custom Value',
       numField: 123
@@ -312,7 +322,7 @@ describe('nativeErrorToString', () => {
     err.stack = 'Error: Native error\n  at func (file.js:1:1)'
 
     const str = nativeErrorToString(err)
-    expect(str).toContain('cause:\nError: Root cause error')
+    expect(str).toContain('cause:\nstack:\nError: Root cause error')
     expect(str).toContain('stack:\nError: Root cause error\n  at root (root.js:1:1)')
   })
 })
@@ -353,18 +363,70 @@ describe('errorToString (universal formatter)', () => {
     expect(errorToString(12345)).toBe('12345')
     expect(errorToString(true)).toBe('true')
 
-    // Все примитивные значения на верхнем уровне - будут записаны в свойство __value
-    expect(errorToJsonLike(123)).toStrictEqual({ __value: 123 })
-    // @ts-expect-error
-    expect(nativeErrorToJsonLike(true)).toStrictEqual({ __value: true })
-    // Для конкретных функций работающих с объектами - нельзя передавать невалидный тип
-    // @ts-expect-error
-    expect(() => errorDetailToJsonLike(false)).toThrow()
+
   })
 
   test('should return empty string for null or undefined', () => {
     expect(errorToString(null)).toBe('')
     expect(errorToString(undefined)).toBe('')
+  })
+})
+
+describe('errorToJsonLike (universal formatter)', () => {
+  test('invalid type', () => {
+    // Все примитивные значения на верхнем уровне - будут записаны в свойство __value
+    expect(errorToJsonLike(123)).toStrictEqual({ __value: 123 })
+    // Для конкретных функций работающих с объектами - нельзя передавать невалидный тип
+    // @ts-expect-error
+    expect(() => nativeErrorToJsonLike(true)).toThrow()
+    // @ts-expect-error
+    expect(() => errorDetailToJsonLike(false)).toThrow()
+  })
+
+  test('hacker attack', () => {
+    const error = createErrorLike({
+      name: 'HackerError',
+      message: '...'
+    })
+    Object.defineProperty(error, 'message', {
+      enumerable: true,
+      get () {
+        throw 0 // Упавшие свойства игнорируются
+      }
+    })
+    // @ts-expect-error Рекурсивные ссылки игнорируются
+    error.self = error
+    // @ts-expect-error Пустые объекты игнорируются
+    error.empty = { error }
+    // @ts-expect-error
+    error.obj = { some: 123, error }
+    expect(errorToJsonLike(error)).toStrictEqual({ name: 'HackerError', obj: { some: 123 } })
+    // Безопасное извлечение JSON
+    expect(JSON.stringify(error)).toBe('{"name":"HackerError","obj":{"some":123}}')
+  })
+
+  test('non enumerable', () => {
+    const privateValue = Symbol()
+    class SomeError extends BaseError {
+
+      constructor(message: string) {
+        const detail = createErrorLike({ message })
+        super(Object.defineProperty(detail, '_meta', { value: privateValue }))
+      }
+    }
+    let error!: SomeError
+    let isMeta = false
+    try {
+      throw new SomeError('...')
+    } catch (e: any) {
+      if (e.detail._meta === privateValue) {
+        isMeta = true
+      }
+      error = e
+    }
+    // Неперечислимые поля ошибок игнорируются
+    expect(isMeta).toBe(true)
+    expect(error.toJSON()).toStrictEqual({ name: 'SomeError', message: '...', stack: expect.stringContaining('SomeError: ...') })
   })
 })
 
@@ -392,8 +454,8 @@ warnings.0:
 message: IErrorLike was not created
 level: error
 warnings.1:
-name: MyLib.CustomError
 code: 4097
+name: MyLib.CustomError
 level: warning
 `.trim()
     expect(asString).toBe(expected)
