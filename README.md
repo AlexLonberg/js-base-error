@@ -114,3 +114,14 @@ const asString = `${aggregateError}`
   "js-base-error": "0.4.0"
 }
 ```
+
+Проверить все установленные версии одного пакета можно командой `npm list js-base-error`. Если обнаружено несколько версий, команда покажет дерево зависимостей:
+
+```
+my-app@1.0.0
+├─┬ my-lib@0.1.0
+│ └── js-base-error@0.3.0
+└── js-base-error@0.4.0
+```
+
+Смотрите так же [npm dedupe](https://docs.npmjs.com/cli/v11/commands/npm-dedupe).
