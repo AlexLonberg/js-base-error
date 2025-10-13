@@ -2,11 +2,13 @@ import { describe, test, expect } from 'vitest'
 import {
   type TErrorLevel,
   type IErrorDetail,
+  // type ISerializable,
   type IErrorLike,
   // type IErrorLikeCollection,
   ErrorLikeProto,
   BaseError,
   ErrorLikeCollection,
+  // captureErrorProperties,
   // captureStackTrace,
   createErrorLike,
   // ensureErrorLike,
@@ -136,6 +138,7 @@ describe('BaseError', () => {
     code: number
   }
   class DefaultError extends BaseError<IErrorLike> { }
+
   class TestError extends BaseError<IErrorLikeEx> {
     constructor(code: number, message: string, level?: TErrorLevel) {
       super({ code, message, level })
@@ -144,6 +147,7 @@ describe('BaseError', () => {
 
   test('should be an instance of Error', () => {
     const err = new TestError(100, 'Base test')
+
     expect(err).toBeInstanceOf(Error)
     expect(err).toBeInstanceOf(BaseError)
     expect(err).toBeInstanceOf(TestError)

@@ -23,13 +23,14 @@ interface IErrorLike extends IErrorLike_ {
 
 // # 2. Определяем базовую ошибку библиотеки.
 
-class BaseLibError extends BaseError<IErrorLike> { }
+class BaseLibError extends BaseError<IErrorLike, IErrorLike_> { }
 
 // # 3. Стратегия генерации ошибок с помощью конструктора.
 
 class UnknownError extends BaseLibError {
+  readonly code = errorCodes.UnknownError
   constructor(message: string) {
-    super({ code: errorCodes.UnknownError, message })
+    super({ message })
   }
 }
 
@@ -55,6 +56,7 @@ class ValueError extends BaseLibError { }
 describe('Example Usage Integration', () => {
   test('UnknownError should work as expected', () => {
     const err = new UnknownError('Something unknown happened')
+
     expect(err).toBeInstanceOf(BaseLibError)
     expect(err).toBeInstanceOf(UnknownError)
     expect(err.detail.code).toBe(errorCodes.UnknownError)
@@ -135,6 +137,55 @@ describe('Example Usage Integration', () => {
     // message: The very first problem
     expect(midErrorCauseSection).toMatch(/code: 0[\s\S]*message: The very first problem/)
   })
+})
+
+test('Error default property', () => {
+  // Варианты определения свойств по умолчанию.
+
+  // Без свойства 'name' класса ошибка получит имя класса
+  class FooError extends BaseError { }
+  const foo = new FooError({})
+  expect(foo.name).toBe('FooError')
+  expect(foo.detail.name).toBe('FooError')
+  // Прямое переопределение имени игнорируется - базовый класс использует заглушку set name(v)
+  foo.name = 'X'
+  expect(foo.name).toBe('FooError')
+  expect(foo.detail.name).toBe('FooError')
+  // ... только так
+  foo.detail.name = 'X'
+  expect(foo.name).toBe('X')
+  expect(foo.detail.name).toBe('X')
+
+  // С переопределением 'name' - getter базового класса перекрывается и ошибка получит пользователькое свойство
+  class CustomNameError extends BaseError {
+    override name = 'App.Error' // Полностью переопределим свойство класса: get/set to value
+  }
+  const name = new CustomNameError({})
+  expect(name.name).toBe('App.Error')
+  expect(name.detail.name).toBe('App.Error')
+  // Повторное определение невозможно - setter был переопределен
+  name.name = 'X'
+  expect(name.name).toBe('X') // !!!
+  expect(name.detail.name).toBe('App.Error')
+  // ... но это не мешает установить имя прямо в деталях ошибки(не забываем что это не повлияет на Error.name)
+  name.detail.name = 'X'
+  expect(name.detail.name).toBe('X')
+
+  // Стандартный вариант с передачей имени в деталях ошибки
+  const err = new FooError({ name: 'Arr.FooError' })
+  expect(err.name).toBe('Arr.FooError') // сработает get name()
+  expect(err.detail.name).toBe('Arr.FooError')
+
+  // Любое пользовательское свойство класса ошибки будет скопировано один раз
+  class SomeError extends BaseError<IErrorLike_ & { custom: number }, {}> {
+    custom = 1234
+  }
+  const some = new SomeError({})
+  expect(some.detail.custom).toBe(1234)
+  // Пользователькие свойства класса должны применяться только для упрощенного определения свойств по умолчанию,
+  // попытки изменить значения на самом свойстве - игнорируются.
+  some.custom = 5678
+  expect(some.detail.custom).toBe(1234)
 })
 
 test('Error formatting', () => {

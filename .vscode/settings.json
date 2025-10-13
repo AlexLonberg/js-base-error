@@ -24,23 +24,10 @@
       "enabled": true
     }
   },
-  "cSpell.words": [],
-  "[markdown]": {
-    "editor.rulers": [
-      88 // code
-    ]
-  },
-  "[typescript]": {
-    "editor.rulers": [
-      88,
-      120
-    ],
-  },
   // Запускает eslint с системной версией NodeJS
   "eslint.runtime": "node",
   "eslint.useESLintClass": true,
   "eslint.codeActionsOnSave.mode": "problems",
-  // "eslint.codeActionsOnSave.mode": "all",
   // Отключаем действия для правил удаляющих код при форматировании. Если выше включен mode:"problems" - эта настройка игнорируется.
   // !rule - off
   // *     - on
@@ -52,9 +39,7 @@
   "editor.codeActionsOnSave": {
     "editor.formatOnSave": "explicit",
     "source.fixAll": "explicit"
-    // Обе опции не могут сортировать импорт начиная с типов
-    // "source.organizeImports": "explicit",
-    // "source.sortImports": "explicit"
   },
-  "typescript.tsdk": "node_modules\\typescript\\lib"
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "vitest.shellType": "terminal"
 }

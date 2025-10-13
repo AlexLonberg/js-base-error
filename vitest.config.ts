@@ -14,10 +14,11 @@ export default defineConfig({
     },
     browser: {
       // enabled: false,
+      // headless: true,
       enabled: true,
+      headless: false,
       provider: 'playwright',
       // viewport: { height: 100, width: 100 },
-      // headless: true,
       instances: [{
         browser: 'chromium',
         env: { FIX_CAPTURE_STACK_TRACE: true }
@@ -28,6 +29,12 @@ export default defineConfig({
       include: ['src/**/*.ts'],
       provider: 'istanbul',
       reportsDirectory: '.temp/coverage'
+    },
+    // Config https://vitest.dev/config/#benchmark
+    benchmark: {
+      include: [
+        'scripts/**/*.bench.js'
+      ]
     }
   }
 })

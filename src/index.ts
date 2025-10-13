@@ -1,7 +1,8 @@
 /**
  * Статический метод [Error.captureStackTrace(...)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error/captureStackTrace)
  *
- * Безопасная альтернатива явного вызова `Error.captureStackTrace()`. В окружениях, где он отсутствует, функция становится no-op.
+ * Безопасная альтернатива явного вызова `Error.captureStackTrace()`. В окружениях, где он
+ * отсутствует(если такое вообще возможно), функция становится no-op.
  */
 const captureStackTrace = ((): ((target: object, construct?: undefined | null | Function) => void) => {
   try {
@@ -29,7 +30,7 @@ const captureStackTrace = ((): ((target: object, construct?: undefined | null | 
 /**
  * Уровень ошибок.
  */
-type TErrorLevel = 'info' | 'warning' | 'error' | 'debug'
+type TErrorLevel = 'debug' | 'info' | 'warning' | 'error' | 'fatal'
 
 /**
  * Базовый интерфейс деталей ошибки с минимальным набором распространенных свойств.
@@ -62,21 +63,23 @@ interface IErrorDetail {
 }
 
 /**
- * Расширяет {@link IErrorDetail} методами форматирования `toString()` и `toJSON()`.
+ * Предоставляет методы приведения объекта к строке или `JsonLike` объекту.
  */
-interface IErrorLike extends IErrorDetail {
+interface ISerializable {
   toString (): string
   toJSON (): Record<string, any>
 }
 
 /**
+ * Расширяет {@link IErrorDetail} методами форматирования `toString()` и `toJSON()`.
+ */
+interface IErrorLike extends IErrorDetail, ISerializable { }
+
+/**
  * Массив ошибок с методом автоматического преобразования `toString()` всех вложенных {@link IErrorLike} к строке или
  * `toJSON()` к объекту `{errors: Record<string, any>[]}`.
  */
-interface IErrorLikeCollection<T extends IErrorLike = IErrorLike> extends Array<T> {
-  toString (): string
-  toJSON (): Record<string, any>
-}
+interface IErrorLikeCollection<T extends IErrorLike = IErrorLike> extends Array<T>, ISerializable { }
 
 /**
  * Прототип для реализации интерфейса {@link IErrorLike}.
@@ -94,18 +97,53 @@ const ErrorLikeProto = Object.freeze({
  * Базовый класс ошибок.
  *
  * Обеспечивает прямой доступ к {@link IErrorLike} и форматированию к строке.
+ *
+ * **Note:** Собственные перечислимые свойства наследников автоматически копируются в объект деталей ошибок, при
+ * условии, что последние явно не определены на объекте {@link IErrorDetail}.
+ *
+ * @template T Подробный тип ошибки `BaseError.detail`.
+ * @template P Тип параметра конструктора `new BaseError(IErrorDetail)`. Может быть сокращенным типом ошибки, когда
+ * константные свойства определяются на классах и не нуждаются в передачи конструкторам.
+ *
+ * @example
+ * ```ts
+ * class CustomError extends BaseError {
+ *   code: 123
+ * }
+ * const error = new CustomError({})
+ * // error.detail.code === 123
+ * ```
  */
-abstract class BaseError<T extends IErrorLike = IErrorLike> extends Error {
-  readonly detail: T
+abstract class BaseError<T extends IErrorLike | IErrorDetail = IErrorDetail, P extends IErrorLike | IErrorDetail = T> extends Error {
+  /**
+   * Ссылка на оригинальный объект с деталями ошибки.
+   *
+   * Свойство {@link detail}, при инициализации класса, определено как `getter`. При первом доступе оригинальный
+   * объект получает все перечислимые свойства класса ошибки и его прототипов, используя
+   * {@link captureErrorProperties()}, после чего `detail` изменяет дескриптор на `value:_detail`.
+   *
+   * При острой необходимости, дескрипторы доступа(к обоим свойствам) можно изменить - важно чтобы {@link detail}
+   * возвращал корректный объект {@link IErrorLike}.
+   *
+   * **Warning:** После вызова {@link detail}, перезаписать детали ошибки, путем изменения значений на классе,
+   * невозможно. Для перезаписи одного из свойств {@link detail}, используйте прямой доступ. Getter помогает определить
+   * константные свойства ошибок на классах наследниках, не прибегая к передаче этих свойств в объект {@link detail}.
+   */
+  declare protected readonly _detail: T
+  /**
+   * Детали ошибки {@link IErrorLike}.
+   */
+  declare readonly detail: T extends IErrorLike ? T : (T & { toString (): string, toJSON (): Record<string, any> })
 
-  constructor(detail: T | Omit<T, 'toString' | 'toJSON'>) {
+  constructor(detail: P | Omit<P, 'toString' | 'toJSON'>) {
     super(detail.message ?? undefined)
-    this.detail = isErrorLike(detail) ? detail : createErrorLike(detail, false)
-    _writeNameAndStackOf(this.detail, this)
-  }
-
-  override get name (): string {
-    return this.detail.name ?? super.name
+    // Сохраняем оригинал и обеспечиваем ленивое копирование свойств через расширенный ниже прототип
+    Object.defineProperty(this, '_detail', {
+      configurable: true,
+      enumerable: false,
+      writable: false,
+      value: isErrorLike(detail) ? detail : createErrorLike(detail, false)
+    })
   }
 
   override toString (): string {
@@ -116,11 +154,46 @@ abstract class BaseError<T extends IErrorLike = IErrorLike> extends Error {
     return this.detail.toJSON()
   }
 }
+// Чтобы не создавать несколько базовых классов - дополним прототип здесь, избегая инициализации свойств в конструкторе.
+// Почему здесь: По причине невозможности определить get/set name(), на который будет ругаться TS после попытки
+// установить свойство 'name' классам. Вот пример ошибки:
+// class FooError extends BaseError {
+//  name = 'FooError'
+//  -> 'name' is defined as an accessor in class 'BaseError<IErrorLike, IErrorLike>', but is overridden here in 'FooError' as an instance property.
+Object.defineProperties(BaseError.prototype, {
+  detail: {
+    configurable: true,
+    enumerable: true,
+    get () {
+      // Одноразовая ленивая инициализация.
+      captureErrorProperties(this, this._detail)
+      Object.defineProperty(this, 'detail', {
+        configurable: true,
+        enumerable: true,
+        writable: false,
+        value: this._detail
+      })
+      return this._detail
+    }
+  },
+  // Если пользователь переопределит свойство класса, имя ошибки будет получено при первом обращении к detail
+  name: {
+    configurable: true,
+    enumerable: true, // По умолчанию у стандартных ошибок здесь false
+    // !!! writable: true, По умолчанию, но нам нужны get/set
+    get () {
+      return (typeof this._detail.name === 'string') ? this._detail.name : this.constructor.name
+    },
+    set (_: string) {
+      // Игнорируем установку имени - переопределение должно производиться через this.detail
+    }
+  }
+})
 
 /**
  * Массив ошибок реализующий {@link IErrorLikeCollection}.
  *
- * **Warning:** Не устанавливайте элементы присвоением индексов, это невозможно проверить.
+ * **Warning:** Не устанавливайте элементы присвоением индексов - это невозможно проверить.
  * Методы `push()/unshift()/splice()` предварительно проверяют тип и принудительно приводят элемент к {@link IErrorLike}.
  * Другие методы не реализованы и могут возвратить не то что ожидается.
  *
@@ -141,7 +214,7 @@ class ErrorLikeCollection<T extends IErrorLike = IErrorLike> extends Array<T> im
 
   /**
    * @param prefix Имя поля для форматирования к строке {@link toString()}. По молчанию `errors`.
-   *               Поля будут именоваться как `errors.0: ... , errors.1: ... ` и т.д.
+   *               Поля именуются как `errors.0: ... , errors.1: ... ` и т.д.
    *               Для метода {@link toJSON()} создается объект с одним полем `{[prefix]: Record<string, any>}`.
    * @param iterable Массивоподобный объект с ошибками.
    */
@@ -196,6 +269,74 @@ class ErrorLikeCollection<T extends IErrorLike = IErrorLike> extends Array<T> im
       array.push(this[i]!.toJSON())
     }
     return { [this._prefix]: array }
+  }
+}
+
+/**
+ * Обеспечивает запись всех собственных перечислимых свойств ошибки `error` и его прототипов на объект `detail`, только
+ * в том случае, если свойство еще не установлено в `detail`.
+ *
+ * **Note:** Эта функция применяется в геттере {@link BaseError.detail}, для отложенного получения пользовательских
+ * свойств, определенных на расширяемых классах ошибок.
+ *
+ * Список свойств которые явно пропускаются:
+ *  + `_detail` - Зарезервировано на классе для оригинальной ссылки на объект деталей ошибки.
+ *  + `detail`  - Детали ошибки класса(временный геттер). Это второй параметр этой функции.
+ *  + `toString() | toJSON()` - Методы конвертации.
+ *
+ * Свойства, для которых допустимы только строки: `name`, `message`, `stack`, `level`.
+ *
+ * Все другие свойства игнорируются, если они `undefined|null`.
+ *
+ * @param error  Ошибка {@link BaseError}, свойства которой будет записаны на `detail`.
+ * @param detail Объект для записи.
+ */
+function captureErrorProperties (error: BaseError, detail: IErrorDetail | IErrorLike): void {
+  // Исключаем стандартные свойства
+  const existsKeys = new Set<string>([...Object.keys(detail), '_detail', 'detail', 'toString', 'toJSON'])
+
+  // Обеспечиваем запись стека из любого прототипа
+  if (!existsKeys.has('stack')) {
+    const stack = safeGetStringOf(error, 'stack')
+    if (stack) {
+      existsKeys.add('stack')
+      detail.stack = stack
+    }
+  }
+
+  const copy = (obj: object, key: string) => {
+    type _T = { [_ in typeof key]: any }
+    try {
+      const value = (obj as _T)[key]
+      const type = typeof value
+      if (
+        type === 'undefined' || value === null ||
+        ((key === 'name' || key === 'message' || key === 'stack' || key === 'level') && type !== 'string')
+      ) {
+        return
+      }
+      (detail as _T)[key] = value
+      existsKeys.add(key)
+    } catch (_) { /**/ }
+  }
+
+  // Проходим по всем прототипам, не включая базовую ошибку(на которой нет свойств). Читаем только перечислимые свойства.
+  let cur: object | null = error
+  while (cur && cur !== BaseError.prototype) {
+    const keys = Object.keys(cur)
+    for (const key of keys) {
+      if (!existsKeys.has(key)) {
+        copy(cur, key)
+      }
+    }
+    cur = Object.getPrototypeOf(cur)
+  }
+
+  // Обеспечиваем запись обязательного имени
+  if (!existsKeys.has('name')) {
+    // Попытка получить имя из свойств была уже выше. теперь получаем только из имени конструктора или установим по
+    // умолчанию. Получать напрямую из error.name нет никакого смысла, она всегда равна 'Error'.
+    detail.name = safeGetStringOf(error.constructor, 'name') ?? 'Error'
   }
 }
 
@@ -254,15 +395,6 @@ function ensureErrorLike<T extends IErrorLike = IErrorLike> (maybeError: any): T
     return maybeError.detail
   }
   return createErrorLike(maybeError)
-}
-
-function _writeNameAndStackOf<T extends IErrorDetail> (detail: T, error: Error): void {
-  if (typeof detail.name !== 'string') {
-    detail.name = error.constructor.name
-  }
-  if (typeof detail.stack !== 'string') {
-    detail.stack = safeGetStringOf(error, 'stack')
-  }
 }
 
 /**
@@ -745,11 +877,13 @@ function errorToJsonLike (anyValue: any): Record<string, any> {
 export {
   type TErrorLevel,
   type IErrorDetail,
+  type ISerializable,
   type IErrorLike,
   type IErrorLikeCollection,
   ErrorLikeProto,
   BaseError,
   ErrorLikeCollection,
+  captureErrorProperties,
   captureStackTrace,
   createErrorLike,
   ensureErrorLike,

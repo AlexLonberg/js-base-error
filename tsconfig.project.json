@@ -35,7 +35,8 @@
     "noImplicitOverride": true,
     "allowUnreachableCode": false,
     "skipLibCheck": true,
-    "disableSizeLimit": true
+    "disableSizeLimit": true,
+    "allowJs": true
   },
   "typeAcquisition": {
     "disableFilenameBasedTypeAcquisition": true

@@ -17,9 +17,6 @@ export default tsEslint.config(
       'eslint.config.js',
       'vitest.config.ts'
     ],
-    // ignores: [
-    // 'src/<>'
-    // ],
     languageOptions: {
       // NOTE В одних примерах ecmaVersion/sourceType здесь, в других в parserOptions - не знаю куда лучше положить
       ecmaVersion: 'latest',

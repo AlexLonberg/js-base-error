@@ -18,11 +18,13 @@
 import { 
   type TErrorLevel,
   type IErrorDetail,
+  type ISerializable,
   type IErrorLike,
   type IErrorLikeCollection,
   ErrorLikeProto,
   BaseError,
   ErrorLikeCollection,
+  captureErrorProperties,
   captureStackTrace,
   createErrorLike,
   ensureErrorLike,
@@ -100,7 +102,7 @@ const asString = `${aggregateError}`
 
 ```json
 "peerDependencies": {
-  "js-base-error": "0.4.0"
+  "js-base-error": "0.5.0"
 }
 ```
 
@@ -108,10 +110,10 @@ const asString = `${aggregateError}`
 
 ```json
 "dependencies": {
-  "js-base-error": "0.4.0"
+  "js-base-error": "0.5.0"
 },
 "overrides": {
-  "js-base-error": "0.4.0"
+  "js-base-error": "0.5.0"
 }
 ```
 
@@ -121,7 +123,7 @@ const asString = `${aggregateError}`
 my-app@1.0.0
 ├─┬ my-lib@0.1.0
 │ └── js-base-error@0.3.0
-└── js-base-error@0.4.0
+└── js-base-error@0.5.0
 ```
 
 Смотрите так же [npm dedupe](https://docs.npmjs.com/cli/v11/commands/npm-dedupe).
