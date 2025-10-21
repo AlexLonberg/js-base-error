@@ -1,17 +1,21 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vitest/config'
+import { readTsConfigBase } from './scripts/readTsConfigBase.js'
+
+const jsonTsConfig = readTsConfigBase()
 
 // Конфигурация для тестирования в Chromium
 export default defineConfig({
+  esbuild: {
+    // Загрузчик vite не может разобрать файл tsconfig.project.json с {"extends": "./tsconfig.base.json"} завершаясь
+    // ошибкой: `The "path" argument must be of type string. Received null`.
+    // Передаем ему сырой текст.
+    tsconfigRaw: jsonTsConfig
+  },
   test: {
     include: [
       './src/**/*.test.ts'
     ],
-    setupFiles: './scripts/vitest.setup.ts',
-    env: {
-      // для чего это - описано в файле тестов
-      FIX_CAPTURE_STACK_TRACE: true
-    },
     browser: {
       // enabled: false,
       // headless: true,
@@ -20,8 +24,7 @@ export default defineConfig({
       provider: 'playwright',
       // viewport: { height: 100, width: 100 },
       instances: [{
-        browser: 'chromium',
-        env: { FIX_CAPTURE_STACK_TRACE: true }
+        browser: 'chromium'
       }]
     },
     coverage: {
@@ -33,7 +36,9 @@ export default defineConfig({
     // Config https://vitest.dev/config/#benchmark
     benchmark: {
       include: [
-        'scripts/**/*.bench.js'
+        // 'scripts/likeVsNative.bench.js',
+        'scripts/*.bench.ts',
+        'scripts/*.bench.js'
       ]
     }
   }

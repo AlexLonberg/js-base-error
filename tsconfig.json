@@ -1,14 +1,12 @@
 {
-  // Проверить какой файл конфигурации используется для текущего открытого файла *.ts можно
-  // открыв команды [F1] -> "TypeScript: Go to Project Configuration"
-  // или кликнуть внизу VSCode на значок TypeScript с именем файла конфига.
   "compilerOptions": {
-    "rootDir": "./src",
+    "rootDir": ".",
     "lib": [],
     "types": []
   },
-  "files": [],
   "include": [],
+  "files": [],
+  "exclude": [],
   "references": [
     {
       "path": "./tsconfig.dist.json"

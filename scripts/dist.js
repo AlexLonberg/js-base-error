@@ -1,38 +1,63 @@
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { rwModify, clearDir, copyDir } from 'nodejs-pkg-tools'
+import { readFileSync, writeFileSync, copyFileSync, readdirSync, mkdirSync, rmSync, lstatSync } from 'node:fs'
 
-const ws = dirname(dirname(fileURLToPath(import.meta.url)))
-const distFolder = 'dist'
-const dist = join(ws, distFolder)
+const projectDir = dirname(dirname(fileURLToPath(import.meta.url)))
+const distDir = join(projectDir, 'dist')
 
-if (clearDir(dist) === false) {
-  throw new Error('Ошибка очистки "dist" каталога.')
+function clearDir (path) {
+  try {
+    const stats = lstatSync(path)
+    if (!stats.isDirectory()) {
+      rmSync(path)
+      throw 0
+    }
+  } catch {
+    mkdirSync(path)
+    return
+  }
+  const files = readdirSync(path, { encoding: 'utf8', withFileTypes: false })
+  for (const name of files) {
+    rmSync(join(path, name), { force: true, maxRetries: 5, retryDelay: 100 })
+  }
 }
 
-const { errors } = rwModify({
-  mode: 'over_error',
-  exclude: [
-    'scripts',
-    'devDependencies',
-    'private'
-  ],
-  sample: {
-    main: './index.js',
-    types: './index.d.ts',
-    exports: {
-      '.': {
-        import: './index.js',
-        types: './index.d.ts'
-      }
+void function () {
+  clearDir(distDir)
+
+  const jsonMap = new Map(Object.entries(
+    JSON.parse(readFileSync(join(projectDir, 'package.json'), { encoding: 'utf8' }))
+  ))
+
+  const json = {}
+  for (const key of [
+    'name',
+    'version',
+    'description',
+    'author',
+    'homepage',
+    'repository',
+    'license',
+    'keywords',
+    'type'
+  ]) {
+    json[key] = jsonMap.get(key)
+  }
+  json.main = './index.js'
+  json.types = './index.d.ts'
+  json.exports = {
+    '.': {
+      import: './index.js',
+      types: './index.d.ts'
+    },
+    './dev': {
+      import: './dev.js',
+      types: './dev.d.ts'
     }
   }
-}, join(ws, 'package.json'), join(dist, 'package.json'))
+  writeFileSync(join(distDir, 'package.json'), JSON.stringify(json, null, 2), { encoding: 'utf8' })
 
-if (errors.isFatalError) {
-  throw new Error(errors.errors.join('\n\n'))
-}
-
-if (copyDir(ws, dist, ['LICENSE.md', 'README.md']) !== true) {
-  throw new Error('Ошибка копирования файлов.')
-}
+  for (const name of ['LICENSE.md', 'README.md']) {
+    copyFileSync(join(projectDir, name), join(distDir, name))
+  }
+}()

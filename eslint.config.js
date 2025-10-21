@@ -18,7 +18,6 @@ export default tsEslint.config(
       'vitest.config.ts'
     ],
     languageOptions: {
-      // NOTE В одних примерах ecmaVersion/sourceType здесь, в других в parserOptions - не знаю куда лучше положить
       ecmaVersion: 'latest',
       sourceType: 'module',
       parser: tsEslint.parser,
@@ -58,14 +57,18 @@ export default tsEslint.config(
       '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports', fixStyle: 'inline-type-imports' }],
       // Требует Record<A, B> или наоборот, вместо {[k: A]: B}
       '@typescript-eslint/consistent-indexed-object-style': 'off',
-      // Не дает использовать в условных выражениях if( || )
-      '@typescript-eslint/prefer-nullish-coalescing': ['error', { ignoreConditionalTests: true }],
       // Не дает явно объявить тип параметра `once: boolean = false`, считая что это лишнее.
       '@typescript-eslint/no-inferrable-types': 'off',
       // Требует вместо for/i использовать for/of.
       '@typescript-eslint/prefer-for-of': 'off',
       // Не дает использовать геттеры в литеральных свойствах классов вроде `get [Symbol.toStringTag] () { return 'Foo' }`
       '@typescript-eslint/class-literal-property-style': 'off',
+      // Требует заменить `if(!value) value = ...` на `value ??= ...`, что не всегда очевидно - ignoreIfStatements
+      // Не дает использовать в условных выражениях if( || ) - ignoreConditionalTests
+      '@typescript-eslint/prefer-nullish-coalescing': ['error', { ignoreIfStatements: true, ignoreConditionalTests: true }],
+      // По умолчанию(constructor) не дает определить аннотации слева(map: Map<> = new Map()),
+      // но этого требует правило TS(--isolatedDeclarations)
+      '@typescript-eslint/consistent-generic-constructors': ['error', 'type-annotation'],
       //
       // ## Стиль ##
       //
