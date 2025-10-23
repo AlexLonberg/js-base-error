@@ -253,7 +253,7 @@ describe('errors | to Json and String', () => {
       code: 500,
       message: 'Internal error',
       cause: { detail: 'Database failure' },
-      stack: 'Fake stack\nat service (/app.js:30)\nat controller (/app.js:20)'
+      stack: 'Fake stack\n    at service (/app.js:30)\n    at controller (/app.js:20)'
     }
     const error = new BaseError(detail)
 
@@ -280,7 +280,7 @@ describe('errors | to Json and String', () => {
       name: 'BaseError',
       message: 'Internal error',
       code: 500,
-      stack: 'at service (/app.js:30)\nat controller (/app.js:20)',
+      stack: '    at service (/app.js:30)\n    at controller (/app.js:20)',
       cause: { __meta: { kind: 'object', length: 1 } }
     }) // with stack and limited depth
 
@@ -289,8 +289,8 @@ describe('errors | to Json and String', () => {
       'name: BaseError\n' +
       'message: Internal error\n' +
       'code: 500\n' +
-      'stack: at service (/app.js:30)\n' +
-      '  at controller (/app.js:20)\n' +
+      'stack:     at service (/app.js:30)\n' +
+      '      at controller (/app.js:20)\n' +
       'cause:\n' +
       '  __meta:\n' +
       '    kind: object\n' +
@@ -425,6 +425,14 @@ describe('beautiful error', () => {
 name: CosmicRayFluxError
 message: A high-energy particle corrupted a critical memory address.
 code: CRF-001
+stack: CosmicRayFluxError: A high-energy particle...
+      at processTransaction (/app/services/payment.js:123:45)
+      at handleRequest (/app/server.js:80:10)
+cause:
+  name: DatabaseTimeoutError
+  message: Query timed out while fetching user data
+  query: SELECT * FROM users;
+  timeout: 3000
 level: fatal
 timestamp:
   __meta:
@@ -460,14 +468,6 @@ subsystemFailures:
       kind: error
       name: MetricsError
       message: Failed to report to Prometheus
-stack: CosmicRayFluxError: A high-energy particle...
-      at processTransaction (/app/services/payment.js:123:45)
-      at handleRequest (/app/server.js:80:10)
-cause:
-  name: DatabaseTimeoutError
-  message: Query timed out while fetching user data
-  query: SELECT * FROM users;
-  timeout: 3000
 `.trim())
 
     expect(bombs).toMatchObject([new Error('bomb 1'), new Error('bomb 2')])

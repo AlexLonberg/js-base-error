@@ -167,6 +167,14 @@ throw new CosmicRayFluxError()
 name: CosmicRayFluxError
 message: A high-energy particle corrupted a critical memory address.
 code: CRF-001
+stack: CosmicRayFluxError: A high-energy particle...
+      at processTransaction (/app/services/payment.js:123:45)
+      at handleRequest (/app/server.js:80:10)
+cause:
+  name: DatabaseTimeoutError
+  message: Query timed out while fetching user data
+  query: SELECT * FROM users;
+  timeout: 3000
 level: fatal
 timestamp:
   __meta:
@@ -202,14 +210,6 @@ subsystemFailures:
       kind: error
       name: MetricsError
       message: Failed to report to Prometheus
-stack: CosmicRayFluxError: A high-energy particle...
-      at processTransaction (/app/services/payment.js:123:45)
-      at handleRequest (/app/server.js:80:10)
-cause:
-  name: DatabaseTimeoutError
-  message: Query timed out while fetching user data
-  query: SELECT * FROM users;
-  timeout: 3000
 ```
 </details>
 

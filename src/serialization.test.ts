@@ -102,8 +102,10 @@ describe('serialization | json', () => {
     expect(safeReadStackInto({ stack: 'without first at' }, {}, 256, false)).toBe(false)
 
     const receiver = {} as { stack: any }
-    expect(safeReadStackInto({ stack: '    at 1\n    at 2' }, receiver, 256, false)).toBe(true)
-    expect(receiver.stack).toBe('    at 1\n    at 2')
+    // Стек детектируется по:
+    //   + любое количество пробелов(или таб) + at + минимум один пробел(или таб)
+    expect(safeReadStackInto({ stack: 'at 1\nat 2' }, receiver, 256, false)).toBe(true)
+    expect(receiver.stack).toBe('at 1\nat 2')
     expect(safeReadStackInto({ stack: 'Error: message\n    at 3\n    at 4' }, receiver, 256, false)).toBe(true)
     expect(receiver.stack).toBe('    at 3\n    at 4')
     expect(safeReadStackInto({ stack: 'Error: message\n    at 5\n    at process' }, receiver, 20, false)).toBe(true)
@@ -554,12 +556,12 @@ describe('serialization | to Json and String', () => {
 
     const json = errorLikeToJsonLike({ detail }, { includeStack: true })
     expect(json).toStrictEqual({
-      code: 404,
       name: 'NotFoundError',
       message: 'Resource not found',
-      level: 'warn',
+      code: 404,
       stack: 'at handler (/app.ts:10)\nat main (/app.ts:5)',
-      cause: { reason: 'Invalid ID' }
+      cause: { reason: 'Invalid ID' },
+      level: 'warn'
     })
 
     const str = errorLikeToToString({ detail }, { includeStack: true })
@@ -567,11 +569,11 @@ describe('serialization | to Json and String', () => {
       'name: NotFoundError\n' +
       'message: Resource not found\n' +
       'code: 404\n' +
-      'level: warn\n' +
       'stack: at handler (/app.ts:10)\n' +
       '  at main (/app.ts:5)\n' +
       'cause:\n' +
-      '  reason: Invalid ID'
+      '  reason: Invalid ID\n' +
+      'level: warn'
     )
   })
 

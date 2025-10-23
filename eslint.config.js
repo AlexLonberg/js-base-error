@@ -49,8 +49,6 @@ export default tsEslint.config(
         caughtErrors: 'all',
         caughtErrorsIgnorePattern: '^_'
       }],
-      // В этом проекте повсюду расставлен debugger
-      'no-debugger': 'off',
       // Не дает использовать type и предлагает явно interface
       '@typescript-eslint/consistent-type-definitions': 'off',
       // Требовать импорта типов как 'import {type Foo} from ...'
@@ -69,6 +67,8 @@ export default tsEslint.config(
       // По умолчанию(constructor) не дает определить аннотации слева(map: Map<> = new Map()),
       // но этого требует правило TS(--isolatedDeclarations)
       '@typescript-eslint/consistent-generic-constructors': ['error', 'type-annotation'],
+      // Для отключения предупреждений использования оператора debugger
+      // 'no-debugger': 'off',
       //
       // ## Стиль ##
       //

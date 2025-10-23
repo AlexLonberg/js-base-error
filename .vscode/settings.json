@@ -14,7 +14,8 @@
     "**/*.json": true,
     "eslint.config.js": true,
     "vitest.config.ts": true,
-    "LICENSE.md": true
+    "LICENSE.md": true,
+    "**/*.png": true
   },
   "googleSearchContextMenu.items": {
     "MDNWeb": {

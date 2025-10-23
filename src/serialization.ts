@@ -20,7 +20,7 @@ import {
 import type { ErrorLike, BaseError } from './errors.ts'
 
 const _ELM = ERROR_LIKE_MARKER
-const _RE_AT = /^\s*at\s/i
+const _RE_AT = /^[\t ]*at[\t ]+/i
 const _VALUE_TYPE = {
   undefined: 0,
   null: 1,
@@ -274,8 +274,12 @@ function safeReadStackInto (obj: Record<string, any>, receiver: Record<string, a
     return false
   }
   if (!keepStackHeader && !_RE_AT.test(value)) {
-    const [_, ...rest] = value.split('\n') as [string, ...string[]]
-    value = rest.join('\n')
+    const i = value.indexOf('\n')
+    // Первая строка единственная и она не трассировка стека
+    if (i === -1) {
+      return false
+    }
+    value = value.slice(i + 1)
   }
   if (value.length > maxStringLength) {
     value = value.substring(0, maxStringLength)
@@ -534,8 +538,6 @@ function inspectDetail (likeSource: { detail: IErrorDetail }, params: Serializat
   let ignored = 0
   const exists: Set<string> = new Set(keys)
   const receiver: Record<string, any> = {}
-  const hasStack = exists.delete('stack')
-  const hasCause = exists.delete('cause')
 
   // Читаем ключи в строгом порядке
 
@@ -584,6 +586,48 @@ function inspectDetail (likeSource: { detail: IErrorDetail }, params: Serializat
       }
     }
   }
+  const includeStack = params.test('stack')
+  const hasSpace = ctx.hasSpace(count)
+  // Пытаемся прочитать пользовательский stack
+  if (exists.delete('stack')) {
+    if (!includeStack) {
+      ++ignored
+    }
+    else if (hasSpace) {
+      if (safeReadStackInto(detailSource, receiver, params.maxStringLength, params.keepStackHeader)) {
+        ctx.increment()
+        ++count
+      }
+      else {
+        ++ignored
+      }
+    }
+  }
+  // ... иначе, если это нативная ошибка - читаем напрямую
+  else if (includeStack && hasSpace && ('stack' in likeSource) && safeReadStackInto(likeSource, receiver, params.maxStringLength, params.keepStackHeader)) {
+    ctx.increment()
+    ++count
+  }
+  if (exists.delete('cause')) {
+    if (!params.test('cause')) {
+      ++ignored
+    }
+    else if (ctx.hasSpace(count)) {
+      let value: any
+      try {
+        value = detailSource.cause
+      } catch { /**/ }
+      const result = inspectAny(value, params, ctx, level)
+      if (result[0] === VALUE_TYPES.undefined) {
+        ++ignored
+      }
+      else {
+        receiver['cause'] = result[1]
+        ctx.increment()
+        ++count
+      }
+    }
+  }
   if (exists.delete('level')) {
     if (!params.test('level')) {
       ++ignored
@@ -603,50 +647,6 @@ function inspectDetail (likeSource: { detail: IErrorDetail }, params: Serializat
     const ci = safeReadPropsInto(detailSource, params, ctx, level, count, exists, receiver)
     count = ci[0]
     ignored += ci[1]
-  }
-
-  const includeStack = params.test('stack')
-  const hasSpace = ctx.hasSpace(count)
-  // Пытаемся прочитать пользовательский stack
-  if (hasStack) {
-    if (!includeStack) {
-      ++ignored
-    }
-    else if (hasSpace) {
-      if (safeReadStackInto(detailSource, receiver, params.maxStringLength, params.keepStackHeader)) {
-        ctx.increment()
-        ++count
-      }
-      else {
-        ++ignored
-      }
-    }
-  }
-  // ... иначе, если это нативная ошибка - читаем напрямую
-  else if (includeStack && hasSpace && ('stack' in likeSource) && safeReadStackInto(likeSource, receiver, params.maxStringLength, params.keepStackHeader)) {
-    ctx.increment()
-    ++count
-  }
-
-  if (hasCause) {
-    if (!params.test('cause')) {
-      ++ignored
-    }
-    else if (ctx.hasSpace(count)) {
-      let value: any
-      try {
-        value = detailSource.cause
-      } catch { /**/ }
-      const result = inspectAny(value, params, ctx, level)
-      if (result[0] === VALUE_TYPES.undefined) {
-        ++ignored
-      }
-      else {
-        receiver['cause'] = result[1]
-        ctx.increment()
-        ++count
-      }
-    }
   }
 
   total -= ignored
@@ -679,16 +679,12 @@ function inspectError (errorSource: Error, params: SerializationParameters, ctx:
   let total = keys.length
 
   const exists: Set<string> = new Set(keys)
-  const hasName = exists.delete('name') || ('name' in errorSource)
-  const hasMessage = exists.delete('message') || ('message' in errorSource)
-  const hasStack = exists.delete('stack') || ('stack' in errorSource)
-  const hasCause = exists.delete('cause') || ('cause' in errorSource)
 
   let count = 0
   let ignored = 0
   const receiver: Record<string, any> = {}
 
-  if (hasName) {
+  if (exists.delete('name') || ('name' in errorSource)) {
     // Если оно запрещено, то сразу отнимаем счетчик
     if (!params.test('name')) {
       ++ignored
@@ -704,7 +700,7 @@ function inspectError (errorSource: Error, params: SerializationParameters, ctx:
       }
     }
   }
-  if (hasMessage) {
+  if (exists.delete('message') || ('message' in errorSource)) {
     if (!params.test('message')) {
       ++ignored
     }
@@ -718,14 +714,21 @@ function inspectError (errorSource: Error, params: SerializationParameters, ctx:
       }
     }
   }
-
-  if (ctx.hasSpace(count) && exists.size > 0) {
-    const ci = safeReadPropsInto(errorSource, params, ctx, level, count, exists, receiver)
-    count = ci[0]
-    ignored += ci[1]
+  if (exists.delete('code') || ('code' in errorSource)) {
+    if (!params.test('code')) {
+      ++ignored
+    }
+    else if (ctx.hasSpace(count)) {
+      if (safeReadCodeInto(errorSource, receiver)) {
+        ctx.increment()
+        ++count
+      }
+      else {
+        ++ignored
+      }
+    }
   }
-
-  if (hasStack) {
+  if (exists.delete('stack') || ('stack' in errorSource)) {
     if (!params.test('stack')) {
       ++ignored
     }
@@ -739,8 +742,7 @@ function inspectError (errorSource: Error, params: SerializationParameters, ctx:
       }
     }
   }
-
-  if (hasCause) {
+  if (exists.delete('cause') || ('cause' in errorSource)) {
     if (!params.test('cause')) {
       ++ignored
     }
@@ -759,6 +761,26 @@ function inspectError (errorSource: Error, params: SerializationParameters, ctx:
         ++count
       }
     }
+  }
+  if (exists.delete('level') || ('level' in errorSource)) {
+    if (!params.test('level')) {
+      ++ignored
+    }
+    else if (ctx.hasSpace(count)) {
+      if (safeReadStringInto(errorSource, receiver, 'level', null, false)) {
+        ctx.increment()
+        ++count
+      }
+      else {
+        ++ignored
+      }
+    }
+  }
+
+  if (ctx.hasSpace(count) && exists.size > 0) {
+    const ci = safeReadPropsInto(errorSource, params, ctx, level, count, exists, receiver)
+    count = ci[0]
+    ignored += ci[1]
   }
 
   total -= ignored

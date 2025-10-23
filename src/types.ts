@@ -30,10 +30,6 @@ interface IErrorDetail {
    */
   code?: TNullish | number | string
   /**
-   * Необязательное поле уровня ошибки. По умолчанию все ошибки считаются `'error'`.
-   */
-  level?: TNullish | TErrorLevel
-  /**
    * Может быть установлен явно, или взято из {@link Error} если поле извлекается из ошибки.
    */
   stack?: TNullish | string
@@ -41,6 +37,10 @@ interface IErrorDetail {
    * Необязательное поле причины. Может быть любым типом, кроме `undefined`.
    */
   cause?: TNullish | unknown
+  /**
+   * Необязательное поле уровня ошибки. По умолчанию все ошибки считаются `'error'`.
+   */
+  level?: TNullish | TErrorLevel
 }
 
 /**
