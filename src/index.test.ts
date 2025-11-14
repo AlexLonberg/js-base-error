@@ -21,7 +21,7 @@ import {
   BaseError,
   ErrorCollection,
   // isErrorLike,
-  errorToJsonLike,
+  errorToJsonLike
   // errorToString
 } from './index.ts'
 
@@ -76,7 +76,7 @@ cause:
       maxStringLength: 8,
       // ignoreEmpty: true,
       // include?: TNullish | string | string[]
-      exclude: ['token'],
+      exclude: ['token']
       // metaFieldName?: TNullish | string
       // ignoreMeta?: TNullish | boolean
     })
@@ -178,7 +178,7 @@ cause:
       re: /^[0-9]+$/i,
       bg: 123n,
       sm: Symbol('hidden'),
-      dt: new Date('2025-12-25T13:37:00.000Z'),
+      dt: new Date('2025-12-25T13:37:00.000Z')
     })
 
     // Некорректные типы заворачиваются в мета-объекты:

@@ -2,12 +2,8 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "rootDir": ".",
-    // Детальное описание isolatedDeclarations и почему вместе с этой опцией не получается подключить JS
-    // https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-5.html#isolated-declarations
-    "isolatedDeclarations": false,
-    // При подключении JS невозможно аннотировать типы в файлах JS. Вероятно, это и есть причина - невозможности
-    // одновременно использовать isolatedDeclarations.
-    "allowJs": true
+    "allowJs": true,
+    "isolatedDeclarations": false
   },
   "include": [
     "src/**/*.ts",

@@ -34,6 +34,7 @@ const _captureStackTrace = ((): ((target: object, construct?: TNullish | Functio
  * @returns Возвращает аргумент `detail` или, если тип некорректен(не является объектом), новый объект.
  */
 function captureStackTrace<T extends IErrorDetail = IErrorDetail> (detail: T, construct?: TNullish | Function): T {
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   const props = (typeof detail === 'object' && detail !== null)
     ? detail
     : {

@@ -62,7 +62,7 @@ describe('capture', () => {
 
   test('ErrorLike with stack', () => {
     // Пользовательская ошибка с управляемым стеком
-    const modeDev = true
+    const modeDev: boolean = true
 
     class WithStackError extends ErrorLike {
       protected readonly _detail: TNullish | IErrorDetail

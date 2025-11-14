@@ -13,9 +13,6 @@ const _lazyGlobalParams = {
 }
 
 class ReadonlySetImpl extends Set<string> {
-  constructor() {
-    super()
-  }
   override add (_: any): this {
     return this
   }
@@ -63,7 +60,7 @@ function _normalizeInt (value: any, min: number, max: number, defaultValue: numb
     if (value > max) {
       return max
     }
-    return value
+    return value as number
   }
   return defaultValue
 }
@@ -223,7 +220,7 @@ function normalizeSerializationOptions (options?: TNullish | TSerializationOptio
     ignoreEmpty = DEFAULT_SERIALIZATION_OPTIONS.ignoreEmpty
   }
 
-  let metaFieldName = rawOptions.get('metaFieldName')
+  let metaFieldName = rawOptions.get('metaFieldName') as (string | undefined)
   if (typeof metaFieldName !== 'string' || metaFieldName.length === 0) {
     metaFieldName = DEFAULT_SERIALIZATION_OPTIONS.metaFieldName
   }

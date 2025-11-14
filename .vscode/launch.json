@@ -5,35 +5,15 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Launch TS vite-node File",
-      "request": "launch",
+      "name": "Launch TS/JS File",
       "type": "node",
+      "request": "launch",
       "console": "integratedTerminal",
-      // "console": "internalConsole",
-      "runtimeExecutable": "vite-node",
-      "args": [
-        "--config",
-        "scripts/viteNodeRunConfig.ts",
-        "${file}"
-      ],
+      "program": "${file}",
       "skipFiles": [
         "<node_internals>/**",
-        "node_modules/**"
+        "**/node_modules/**"
       ],
-      "outFiles": [
-        "${workspaceFolder}/**/*.js",
-        "${workspaceFolder}/**/*.ts"
-      ]
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "Launch JS File",
-      "console": "integratedTerminal",
-      "skipFiles": [
-        "<node_internals>/**"
-      ],
-      "program": "${file}",
       "outFiles": [
         "${workspaceFolder}/**/*.js",
         "${workspaceFolder}/**/*.ts"

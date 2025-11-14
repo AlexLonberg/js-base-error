@@ -25,10 +25,11 @@
       "enabled": true
     }
   },
-  // Запускает eslint с системной версией NodeJS
   "eslint.runtime": "node",
   "eslint.useESLintClass": true,
+  "eslint.useFlatConfig": true,
   "eslint.codeActionsOnSave.mode": "problems",
+  // "eslint.codeActionsOnSave.mode": "all",
   // Отключаем действия для правил удаляющих код при форматировании. Если выше включен mode:"problems" - эта настройка игнорируется.
   // !rule - off
   // *     - on
@@ -38,8 +39,7 @@
     "*"
   ],
   "editor.codeActionsOnSave": {
-    "editor.formatOnSave": "explicit",
-    "source.fixAll": "explicit"
+    "source.fixAll.eslint": "explicit"
   },
   "typescript.tsdk": "node_modules/typescript/lib",
   "vitest.shellType": "terminal"

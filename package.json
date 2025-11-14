@@ -1,6 +1,6 @@
 {
   "name": "js-base-error",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "JS Base Error.",
   "author": "Alexander Lonberg <alexlonberg@gmail.com>",
   "homepage": "https://github.com/AlexLonberg/js-base-error",
@@ -13,28 +13,32 @@
     "error"
   ],
   "scripts": {
+    "lint": "eslint --config ./eslint.config.js",
     "test": "vitest run --coverage --config vitest.config.ts",
     "bench": "vitest bench",
-    "predist": "node ./scripts/dist.js",
+    "predist": "npm run lint && vitest run --browser.enabled=false --coverage.enabled=false --config vitest.config.ts && node ./scripts/dist.js",
     "dist": "tsc --project tsconfig.dist.json"
   },
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@eslint/js": "^9.27.0",
-    "@stylistic/eslint-plugin": "^4.2.0",
-    "@vitest/browser": "^3.1.4",
-    "@vitest/coverage-istanbul": "^3.1.4",
-    "eslint": "^9.27.0",
-    "nodejs-pkg-tools": "^0.5.0",
-    "playwright": "^1.52.0",
-    "typescript": "^5.8.3",
-    "typescript-eslint": "^8.32.1",
-    "vitest": "^3.1.4"
+    "@eslint/js": "^9.39.1",
+    "@stylistic/eslint-plugin": "^5.5.0",
+    "@types/node": "^24.5.0",
+    "@vitest/browser-playwright": "^4.0.8",
+    "@vitest/coverage-istanbul": "^4.0.8",
+    "@vitest/coverage-v8": "^4.0.8",
+    "eslint": "^9.39.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.4",
+    "vitest": "^4.0.8"
   },
   "exports": {
     ".": {
       "import": "./src/index.ts"
+    },
+    "./dev": {
+      "import": "./src/dev.ts"
     }
   },
   "main": "./src/index.ts"

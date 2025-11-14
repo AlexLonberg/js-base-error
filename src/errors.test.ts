@@ -81,7 +81,7 @@ describe('errors', () => {
     const actions: string[] = []
     const fakeDetails: any[] = []
 
-    class CustomError extends ErrorLike<IErrorDetail> {
+    class CustomError extends ErrorLike {
       // @ts-expect-error Временный перехватчик для теста
       get detail (): IErrorDetail {
         actions.push('before init')
@@ -200,7 +200,7 @@ describe('errors', () => {
     ])
 
     expect(collection.length).toBe(4)
-    expect(collection.every(item => item instanceof ErrorLike)).toBe(true)
+    expect(collection.every((item) => item instanceof ErrorLike)).toBe(true)
     expect(collection[0]?.detail).toMatchObject({ code: 1 })
     expect(collection[1]?.detail).toMatchObject({ code: 2 })
     expect(collection[2]?.detail).toMatchObject({ cause: 'string error' })

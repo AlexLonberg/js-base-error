@@ -1,0 +1,116 @@
+{
+  "compilerOptions": {
+    //
+    // ## Type Checking
+    //
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "alwaysStrict": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitAny": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "strict": true,
+    "strictBindCallApply": true,
+    "strictBuiltinIteratorReturn": true,
+    "strictFunctionTypes": true,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": true,
+    "useUnknownInCatchVariables": true,
+    //
+    // ## Modules
+    //
+    "allowImportingTsExtensions": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "noResolve": false,
+    "rewriteRelativeImportExtensions": true,
+    "rootDir": ".",
+    "typeRoots": [],
+    "types": [],
+    //
+    // ## Emit
+    //
+    "declaration": true,
+    "declarationMap": false,
+    "downlevelIteration": false,
+    "emitBOM": false,
+    "emitDeclarationOnly": false,
+    "importHelpers": false,
+    "inlineSourceMap": false,
+    "inlineSources": false,
+    "newLine": "lf",
+    "noEmit": true,
+    "noEmitHelpers": false,
+    "noEmitOnError": true,
+    "outDir": "./.temp/dist",
+    "removeComments": false,
+    "sourceMap": false,
+    //
+    // ## JavaScript Support
+    //
+    "allowJs": false,
+    "checkJs": false,
+    "maxNodeModuleJsDepth": 0,
+    //
+    // ## Editor Support
+    //
+    "disableSizeLimit": true,
+    //
+    // ## Interop Constraints
+    //
+    "allowSyntheticDefaultImports": false,
+    "erasableSyntaxOnly": true,
+    "esModuleInterop": false,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedDeclarations": true,
+    "isolatedModules": true,
+    "preserveSymlinks": false,
+    "verbatimModuleSyntax": true,
+    //
+    // ## Backwards Compatibility
+    //
+    "keyofStringsOnly": false,
+    "noStrictGenericChecks": false,
+    //
+    // ## Language and Environment
+    //
+    "lib": [
+      "ESNext"
+    ],
+    "libReplacement": false,
+    "moduleDetection": "force",
+    "noLib": false,
+    "target": "esnext",
+    "useDefineForClassFields": true,
+    //
+    // ## Compiler Diagnostics
+    //
+    "noCheck": false,
+    //
+    // ## Projects
+    //
+    "composite": false,
+    "disableReferencedProjectLoad": false,
+    "disableSolutionSearching": false,
+    "incremental": false,
+    "tsBuildInfoFile": "./.temp/.tsbuildinfo_base",
+    //
+    // ## Completeness
+    //
+    "skipLibCheck": false
+  },
+  "typeAcquisition": {
+    "disableFilenameBasedTypeAcquisition": true
+  },
+  "include": [],
+  "files": [],
+  "exclude": [],
+  "references": null
+}

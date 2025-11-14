@@ -15,7 +15,7 @@ import { ERROR_LIKE_MARKER } from './constants.ts'
 import {
   type TSerializationOptions,
   type SerializationParameters,
-  ensureSerializationParameters,
+  ensureSerializationParameters
 } from './options.ts'
 import type { ErrorLike, BaseError } from './errors.ts'
 
@@ -68,6 +68,7 @@ class SerializationContext {
   constructor(maxTotalItems: number, maxItems: number, objForSeen?: object) {
     this._maxTotalItems = maxTotalItems
     this._maxItems = maxItems
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (typeof objForSeen === 'object' && objForSeen !== null) {
       this._seen.add(objForSeen)
     }
@@ -201,7 +202,7 @@ function jsonPropInto (key: string, value: TJsonLike, receiver: string[], level:
 function jsonObjectInto (objectSource: TJsonObject, receiver: string[], level: number): void {
   const keys = Object.keys(objectSource)
   for (const key of keys) {
-    const value = objectSource[key]!
+    const value = objectSource[key] as TJsonLike
     jsonPropInto(key, value, receiver, level)
   }
 }
@@ -223,7 +224,7 @@ function jsonObjectInto (objectSource: TJsonObject, receiver: string[], level: n
  */
 function jsonArrayInto (arraySource: TJsonArray, receiver: string[], level: number): void {
   for (let i = 0; i < arraySource.length; ++i) {
-    const value = arraySource[i]!
+    const value = arraySource[i] as TJsonLike
     jsonPropInto(`[${i}]`, value, receiver, level)
   }
 }
@@ -250,7 +251,7 @@ function safeArrayLength (array: any[]): number {
   try {
     length = array.length
   } catch { /**/ }
-  return Number.isSafeInteger(length) ? length! : 0
+  return Number.isSafeInteger(length) ? length as number : 0
 }
 
 function safeReadCodeInto (obj: Record<string, any>, receiver: Record<string, any>): boolean {
@@ -520,6 +521,7 @@ function inspectDetail (likeSource: { detail: IErrorDetail }, params: Serializat
   try {
     detailSource = likeSource.detail
   } catch { /**/ }
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (typeof detailSource !== 'object' || detailSource === null || ctx.has(detailSource)) {
     return _UNDEFINED
   }

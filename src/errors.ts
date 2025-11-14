@@ -43,7 +43,7 @@ function _createProxy<T extends IErrorDetail> (detail: T, existsKeys: Set<string
       existsKeys.add(key) // Помечаем установку
       return true
     }
-  })
+  }) as T
 }
 
 /**
@@ -62,7 +62,7 @@ const _descriptors = Object.freeze({
     get (this: ErrorLike<any> & { _detail: IErrorDetail }): IErrorDetail {
       // Одноразовая ленивая инициализация, обеспечивающая корректность объекта detail.
       // К этому get обращаются всего один раз - captureErrorProperties() самостоятельно завершит инициализацию.
-      let detail: any
+      let detail: undefined | null | IErrorDetail
       try {
         detail = this._detail
       } catch { /**/ }
@@ -504,7 +504,7 @@ class ErrorCollection<T extends ErrorLike<any> = ErrorLike<any>, P extends (Erro
   override splice (start: number, deleteCount?: number): ErrorCollection<T>
   override splice (start: number, deleteCount: number, ...items: (T | P)[]): ErrorCollection<T>
   override splice (start: number, deleteCount?: number, ...items: (T | P)[]): ErrorCollection<T> {
-    const rest = items?.map((item) => this._ensureError(item)) ?? ([] as T[])
+    const rest = items.map((item) => this._ensureError(item))
     return new ErrorCollection<T>(super.splice(start, deleteCount as any, ...rest))
   }
 
