@@ -66,7 +66,6 @@ const rules = {
   '@typescript-eslint/only-throw-error': 'off',
   // Разрешает `(...args: any[])`
   '@typescript-eslint/no-explicit-any': ['error', { ignoreRestArgs: true }],
-
   // Не дает определять самодокументирующиеся типы `(arg: any | 'foo')`
   '@typescript-eslint/no-redundant-type-constituents': 'off',
   // Оба правила не дают написать `void function() {}()`
@@ -78,11 +77,13 @@ const rules = {
   '@typescript-eslint/no-unnecessary-type-parameters': 'off',
   // Не дает поставить комментарии @ts-expect-error и тому подобное
   '@typescript-eslint/ban-ts-comment': ['warn', { 'ts-expect-error': false }],
-  // Не дает использовать метод без биндинга
+  // Не дает вынести метод в переменную без биндинга, хотя по факту такой метод может будет использовать some.call(this)
   '@typescript-eslint/unbound-method': 'off',
   // Два правила не дают использовать шаблонную строку без явного приведения типа: `${value:number}`
   '@typescript-eslint/restrict-template-expressions': 'off',
   '@typescript-eslint/no-base-to-string': 'off',
+  // Правило перегрузок функций может работать некорректно
+  '@typescript-eslint/unified-signatures': 'off',
   // В этой библиотеке повсюду неизвестные типы - отключаем все правила связанные с `any`.
   '@typescript-eslint/no-explicit-any': 'off',
   '@typescript-eslint/no-unsafe-member-access': 'off',
@@ -91,8 +92,6 @@ const rules = {
   '@typescript-eslint/no-unsafe-function-type': 'off',
   '@typescript-eslint/no-unsafe-argument': 'off',
   '@typescript-eslint/no-unsafe-return': 'off',
-  // Это правило может работать неверно
-  '@typescript-eslint/unified-signatures': 'off',
   // Для отключения предупреждений использования оператора debugger
   // 'no-debugger': 'off',
   //
