@@ -481,7 +481,7 @@ class MyError extends BaseError {
 
 ```json
 "peerDependencies": {
-  "js-base-error": "0.6.0"
+  "js-base-error": "0.7.0"
 }
 ```
 
@@ -489,10 +489,10 @@ class MyError extends BaseError {
 
 ```json
 "dependencies": {
-  "js-base-error": "0.6.0"
+  "js-base-error": "0.7.0"
 },
 "overrides": {
-  "js-base-error": "0.6.0"
+  "js-base-error": "0.7.0"
 }
 ```
 
@@ -502,7 +502,7 @@ class MyError extends BaseError {
 my-app@1.0.0
 ├─┬ my-lib@0.1.0
 │ └── js-base-error@0.5.0
-└── js-base-error@0.6.0
+└── js-base-error@0.7.0
 ```
 
 Смотрите так же [npm dedupe](https://docs.npmjs.com/cli/v11/commands/npm-dedupe).
