@@ -15,7 +15,7 @@
   "scripts": {
     "lint": "eslint --config ./eslint.config.js",
     "test": "vitest run --coverage --config vitest.config.ts",
-    "bench": "vitest bench",
+    "bench": "vitest bench --config vitest.config.ts",
     "predist": "npm run lint && vitest run --browser.enabled=false --coverage.enabled=false --config vitest.config.ts && node ./scripts/dist.js",
     "dist": "tsc --project tsconfig.dist.json"
   },
@@ -29,7 +29,7 @@
     "@vitest/coverage-istanbul": "^4.0.8",
     "@vitest/coverage-v8": "^4.0.8",
     "eslint": "^9.39.1",
-    "typescript": "^5.9.3",
+    "typescript": "^6.0.3",
     "typescript-eslint": "^8.46.4",
     "vitest": "^4.0.8"
   },

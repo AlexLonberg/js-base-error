@@ -5,13 +5,17 @@
     "noEmit": false,
     "noEmitOnError": true,
     "outDir": "./dist",
-    "target": "es2022"
+    "target": "es2022",
+    "lib": [
+      "es2022"
+    ]
   },
   "include": [
     "src/**/*.ts"
   ],
   "files": [],
   "exclude": [
+    "src/**/_",
     "src/**/*.test.ts",
     "src/**/*.bench.ts"
   ]

@@ -20,8 +20,9 @@ export default defineConfig({
     coverage: {
       enabled: true,
       include: ['src/**/*.ts'],
+      exclude: ['src/**/*.test.ts', 'src/**/*.bench.ts', 'src/**/_*'],
       provider: 'istanbul',
-      reportsDirectory: '.temp/.coverage'
+      reportsDirectory: '.temp/coverage'
     },
     // Config https://vitest.dev/config/#benchmark
     benchmark: {

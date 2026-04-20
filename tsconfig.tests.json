@@ -1,0 +1,18 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "noUncheckedIndexedAccess": false,
+    "isolatedDeclarations": false,
+    "lib": [
+      "ESNext"
+    ]
+  },
+  "include": [
+    "src/**/*.test.ts",
+    "src/**/*.bench.ts",
+    "src/**/_*"
+  ],
+  "files": [],
+  "exclude": []
+}

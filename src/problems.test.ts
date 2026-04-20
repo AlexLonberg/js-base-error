@@ -99,7 +99,7 @@ describe('problems', () => {
             configurable: false,
             enumerable: false,
             get () { return ref.get() },
-            set (_) { /**/ }
+            set (_) { }
           })
         }
         actions.push('after define detail')
@@ -128,7 +128,7 @@ describe('problems', () => {
               else if (key === 'message') {
                 actions.push('skip key:message')
               }
-            } catch { /**/ }
+            } catch { }
           }
           cur = Object.getPrototypeOf(cur)
         }
@@ -242,8 +242,8 @@ describe('problems', () => {
         //
       }
     })
-    const insLazyError = Object.create(proto, { name: { value: 'Error' } }) as any
-    const insError = Object.create(proto, { detail: {} }) as any
+    const insLazyError = Object.create(proto, { name: { value: 'Error' } })
+    const insError = Object.create(proto, { detail: {} })
 
     if (!Object.hasOwn(insLazyError, 'detail') && Object.isExtensible(insLazyError)) {
       Object.defineProperty(insLazyError, 'detail', { get () { return {} } })

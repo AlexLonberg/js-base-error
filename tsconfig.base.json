@@ -3,108 +3,274 @@
     //
     // ## Type Checking
     //
+    // https://www.typescriptlang.org/tsconfig/#allowUnreachableCode
     "allowUnreachableCode": false,
+    // https://www.typescriptlang.org/tsconfig/#allowUnusedLabels
     "allowUnusedLabels": false,
+    // В TypeScript 6.0 весь код будет "use strict" и параметр считается устаревшим, но для ясности можно оставить. https://www.typescriptlang.org/tsconfig/#alwaysStrict
     "alwaysStrict": true,
+    // https://www.typescriptlang.org/tsconfig/#exactOptionalPropertyTypes
     "exactOptionalPropertyTypes": true,
+    // https://www.typescriptlang.org/tsconfig/#noFallthroughCasesInSwitch
     "noFallthroughCasesInSwitch": true,
+    // true если strict https://www.typescriptlang.org/tsconfig/#noImplicitAny
     "noImplicitAny": true,
+    // https://www.typescriptlang.org/tsconfig/#noImplicitOverride
     "noImplicitOverride": true,
+    // https://www.typescriptlang.org/tsconfig/#noImplicitReturns
     "noImplicitReturns": true,
+    // true если strict https://www.typescriptlang.org/tsconfig/#noImplicitThis
     "noImplicitThis": true,
+    // https://www.typescriptlang.org/tsconfig/#noPropertyAccessFromIndexSignature
     "noPropertyAccessFromIndexSignature": true,
+    // https://www.typescriptlang.org/tsconfig/#noUncheckedIndexedAccess
     "noUncheckedIndexedAccess": true,
+    // https://www.typescriptlang.org/tsconfig/#noUnusedLocals
     "noUnusedLocals": true,
+    // https://www.typescriptlang.org/tsconfig/#noUnusedParameters
     "noUnusedParameters": true,
+    // https://www.typescriptlang.org/tsconfig/#strict
     "strict": true,
+    // true если strict https://www.typescriptlang.org/tsconfig/#strictBindCallApply
     "strictBindCallApply": true,
+    // true если strict https://www.typescriptlang.org/tsconfig/#strictBuiltinIteratorReturn
     "strictBuiltinIteratorReturn": true,
+    // true если strict https://www.typescriptlang.org/tsconfig/#strictFunctionTypes
     "strictFunctionTypes": true,
+    // true если strict https://www.typescriptlang.org/tsconfig/#strictNullChecks
     "strictNullChecks": true,
+    // true если strict https://www.typescriptlang.org/tsconfig/#strictPropertyInitialization
     "strictPropertyInitialization": true,
+    // true если strict https://www.typescriptlang.org/tsconfig/#useUnknownInCatchVariables
     "useUnknownInCatchVariables": true,
     //
     // ## Modules
     //
+    // Требуется, для расширений файлов не связанных с кодом, например *.css. https://www.typescriptlang.org/tsconfig/#allowArbitraryExtensions
+    // "allowArbitraryExtensions": null,
+    // true если rewriteRelativeImportExtensions https://www.typescriptlang.org/tsconfig/#allowImportingTsExtensions
     "allowImportingTsExtensions": true,
+    // https://www.typescriptlang.org/tsconfig/#allowUmdGlobalAccess
+    "allowUmdGlobalAccess": false,
+    // Устарело. https://www.typescriptlang.org/tsconfig/#baseUrl
+    // "baseUrl": null,
+    // https://www.typescriptlang.org/tsconfig/#customConditions
+    // "customConditions": [],
+    // Используй nodenext для Node.js и esnext для сборщиков. Эта опция тесно связана с 'moduleResolution' и обе должны быть 'nodenext' или 'esnext+bundler', иначе будет ошибка: "Option 'module' must be set to 'NodeNext' when option 'moduleResolution' is set to 'NodeNext'". Значения amd, umd и systemjs устарели. https://www.typescriptlang.org/tsconfig/#module
     "module": "nodenext",
+    // Используй nodenext для современных версий Node.js и bundler для сборки приложений. Все остальные опции устарели. https://www.typescriptlang.org/tsconfig/#moduleResolution
     "moduleResolution": "nodenext",
+    // https://www.typescriptlang.org/tsconfig/#moduleSuffixes
+    // "moduleSuffixes": [],
+    // https://www.typescriptlang.org/tsconfig/#noResolve
     "noResolve": false,
+    // https://www.typescriptlang.org/tsconfig/#noUncheckedSideEffectImports
+    "noUncheckedSideEffectImports": true,
+    // NOTE Not supported by the configurator UI. https://www.typescriptlang.org/tsconfig/#paths
+    // "paths": null,
+    // https://www.typescriptlang.org/tsconfig/#resolveJsonModule
+    "resolveJsonModule": false,
+    // https://www.typescriptlang.org/tsconfig/#resolvePackageJsonExports
+    "resolvePackageJsonExports": true,
+    // https://www.typescriptlang.org/tsconfig/#resolvePackageJsonImports
+    "resolvePackageJsonImports": true,
+    // https://www.typescriptlang.org/tsconfig/#rewriteRelativeImportExtensions
     "rewriteRelativeImportExtensions": true,
+    // NOTE https://www.typescriptlang.org/tsconfig/#rootDir
     "rootDir": ".",
+    // https://www.typescriptlang.org/tsconfig/#rootDirs
+    // "rootDirs": [],
+    // NOTE При использовании опции 'types', например '["node"]', эту опцию нужно удалить или установить null, иначе она перекроет массив 'types' и будет ошибка: Cannot find type definition file for 'node'. https://www.typescriptlang.org/tsconfig/#typeRoots
     "typeRoots": [],
+    // https://www.typescriptlang.org/tsconfig/#types
     "types": [],
     //
     // ## Emit
     //
+    // https://www.typescriptlang.org/tsconfig/#declaration
     "declaration": true,
+    // https://www.typescriptlang.org/tsconfig/#declarationDir
+    // "declarationDir": null,
+    // https://www.typescriptlang.org/tsconfig/#declarationMap
     "declarationMap": false,
-    "downlevelIteration": false,
+    // Deprecated and will stop functioning in TypeScript 7.0. https://www.typescriptlang.org/tsconfig/#downlevelIteration
+    // "downlevelIteration": false,
+    // https://www.typescriptlang.org/tsconfig/#emitBOM
     "emitBOM": false,
+    // https://www.typescriptlang.org/tsconfig/#emitDeclarationOnly
     "emitDeclarationOnly": false,
+    // https://www.typescriptlang.org/tsconfig/#importHelpers
     "importHelpers": false,
+    // https://www.typescriptlang.org/tsconfig/#inlineSourceMap
     "inlineSourceMap": false,
+    // https://www.typescriptlang.org/tsconfig/#inlineSources
     "inlineSources": false,
+    // https://www.typescriptlang.org/tsconfig/#mapRoot
+    // "mapRoot": null,
+    // https://www.typescriptlang.org/tsconfig/#newLine
     "newLine": "lf",
+    // https://www.typescriptlang.org/tsconfig/#noEmit
     "noEmit": true,
+    // https://www.typescriptlang.org/tsconfig/#noEmitHelpers
     "noEmitHelpers": false,
+    // https://www.typescriptlang.org/tsconfig/#noEmitOnError
     "noEmitOnError": true,
+    // NOTE https://www.typescriptlang.org/tsconfig/#outDir
     "outDir": "./.temp/dist",
+    // Эта опция была удалена из TypeScript 6.0. https://www.typescriptlang.org/tsconfig/#outFile
+    // "outFile": null,
+    // https://www.typescriptlang.org/tsconfig/#preserveConstEnums
+    // "preserveConstEnums": false,
+    // https://www.typescriptlang.org/tsconfig/#removeComments
     "removeComments": false,
+    // https://www.typescriptlang.org/tsconfig/#sourceMap
     "sourceMap": false,
+    // https://www.typescriptlang.org/tsconfig/#sourceRoot
+    // "sourceRoot": null,
+    // https://www.typescriptlang.org/tsconfig/#stripInternal
+    // "stripInternal": null,
     //
     // ## JavaScript Support
     //
+    // https://www.typescriptlang.org/tsconfig/#allowJs
     "allowJs": false,
+    // https://www.typescriptlang.org/tsconfig/#checkJs
     "checkJs": false,
+    // https://www.typescriptlang.org/tsconfig/#maxNodeModuleJsDepth
     "maxNodeModuleJsDepth": 0,
     //
     // ## Editor Support
     //
-    "disableSizeLimit": true,
+    // NOTE https://www.typescriptlang.org/tsconfig/#disableSizeLimit
+    "disableSizeLimit": false,
+    // NOTE Not supported by the configurator UI. https://www.typescriptlang.org/tsconfig/#plugins
+    // "plugins": null,
     //
     // ## Interop Constraints
     //
-    "allowSyntheticDefaultImports": false,
+    // В этой опции нет смысла: По умолчанию true и теперь не может быть false - Option 'allowSyntheticDefaultImports=false' is deprecated and will stop functioning in TypeScript 7.0. https://www.typescriptlang.org/tsconfig/#allowSyntheticDefaultImports
+    // "allowSyntheticDefaultImports": null,
+    // Требуется для выполнения нескомпилированных файлов в Node. https://www.typescriptlang.org/tsconfig/#erasableSyntaxOnly
     "erasableSyntaxOnly": true,
-    "esModuleInterop": false,
+    // В этой опции нет смысла: По умолчанию true и теперь не может быть false - Option 'esModuleInterop=false' is deprecated and will stop functioning in TypeScript 7.0. https://www.typescriptlang.org/tsconfig/#esModuleInterop
+    // "esModuleInterop": null,
+    // https://www.typescriptlang.org/tsconfig/#forceConsistentCasingInFileNames
     "forceConsistentCasingInFileNames": true,
+    // https://www.typescriptlang.org/tsconfig/#isolatedDeclarations
     "isolatedDeclarations": true,
+    // https://www.typescriptlang.org/tsconfig/#isolatedModules
     "isolatedModules": true,
+    // https://www.typescriptlang.org/tsconfig/#preserveSymlinks
     "preserveSymlinks": false,
+    // https://www.typescriptlang.org/tsconfig/#verbatimModuleSyntax
     "verbatimModuleSyntax": true,
     //
     // ## Backwards Compatibility
     //
+    // По умолчанию utf8 https://www.typescriptlang.org/tsconfig/#charset
+    // "charset": null,
+    // Устарело в пользу verbatimModuleSyntax https://www.typescriptlang.org/tsconfig/#importsNotUsedAsValues
+    // "importsNotUsedAsValues": "remove",
+    // https://www.typescriptlang.org/tsconfig/#keyofStringsOnly
     "keyofStringsOnly": false,
+    // https://www.typescriptlang.org/tsconfig/#noImplicitUseStrict
+    // "noImplicitUseStrict": false,
+    // https://www.typescriptlang.org/tsconfig/#noStrictGenericChecks
     "noStrictGenericChecks": false,
+    // Эта опция устарела. https://www.typescriptlang.org/tsconfig/#out
+    // "out": null,
+    // Устарело в пользу verbatimModuleSyntax https://www.typescriptlang.org/tsconfig/#preserveValueImports
+    // "preserveValueImports": false,
+    // Не рекомендуется https://www.typescriptlang.org/tsconfig/#suppressExcessPropertyErrors
+    // "suppressExcessPropertyErrors": false,
+    // Не рекомендуется https://www.typescriptlang.org/tsconfig/#suppressImplicitAnyIndexErrors
+    // "suppressImplicitAnyIndexErrors": false,
     //
     // ## Language and Environment
     //
-    "lib": [
-      "ESNext"
-    ],
+    // https://www.typescriptlang.org/tsconfig/#emitDecoratorMetadata
+    // "emitDecoratorMetadata": null,
+    // https://www.typescriptlang.org/tsconfig/#experimentalDecorators
+    // "experimentalDecorators": null,
+    // https://www.typescriptlang.org/tsconfig/#jsx
+    // "jsx": "preserve",
+    // https://www.typescriptlang.org/tsconfig/#jsxFactory
+    // "jsxFactory": "React.createElement",
+    // https://www.typescriptlang.org/tsconfig/#jsxFragmentFactory
+    // "jsxFragmentFactory": "React.Fragment",
+    // https://www.typescriptlang.org/tsconfig/#jsxImportSource
+    // "jsxImportSource": "react",
+    // TODO Смотри минимальную версию в описании опции 'target'. https://www.typescriptlang.org/tsconfig/#lib
+    "lib": [],
+    // Нет смысла использовать эту опцию, если не используются установленные пользовательские библиотеки типов https://www.typescriptlang.org/tsconfig/#libReplacement
     "libReplacement": false,
+    // https://www.typescriptlang.org/tsconfig/#moduleDetection
     "moduleDetection": "force",
+    // https://www.typescriptlang.org/tsconfig/#noLib
     "noLib": false,
+    // https://www.typescriptlang.org/tsconfig/#reactNamespace
+    // "reactNamespace": "React",
+    // TODO Установи версию не меньше es2022 - для поддержки полей классов и генерации кода без 'Object.defineProperty()'. https://www.typescriptlang.org/tsconfig/#target
     "target": "esnext",
+    // Обязательно, для поддержки полей класса https://www.typescriptlang.org/tsconfig/#useDefineForClassFields
     "useDefineForClassFields": true,
     //
     // ## Compiler Diagnostics
     //
+    // https://www.typescriptlang.org/tsconfig/#diagnostics
+    // "diagnostics": null,
+    // Not in the JSON schema, but documented on the website https://www.typescriptlang.org/tsconfig/#explainFiles
+    // "explainFiles": false,
+    // https://www.typescriptlang.org/tsconfig/#extendedDiagnostics
+    // "extendedDiagnostics": false,
+    // https://www.typescriptlang.org/tsconfig/#generateCpuProfile
+    // "generateCpuProfile": "profile.cpuprofile",
+    // Not in the JSON schema, but documented on the website https://www.typescriptlang.org/tsconfig/#generateTrace
+    // "generateTrace": false,
+    // https://www.typescriptlang.org/tsconfig/#listEmittedFiles
+    // "listEmittedFiles": false,
+    // https://www.typescriptlang.org/tsconfig/#listFiles
+    // "listFiles": false,
+    // https://www.typescriptlang.org/tsconfig/#noCheck
     "noCheck": false,
+    // https://www.typescriptlang.org/tsconfig/#traceResolution
+    // "traceResolution": false,
     //
     // ## Projects
     //
+    // https://www.typescriptlang.org/tsconfig/#composite
     "composite": false,
+    // https://www.typescriptlang.org/tsconfig/#disableReferencedProjectLoad
     "disableReferencedProjectLoad": false,
+    // https://www.typescriptlang.org/tsconfig/#disableSolutionSearching
     "disableSolutionSearching": false,
+    // https://www.typescriptlang.org/tsconfig/#disableSourceOfProjectReferenceRedirect
+    // "disableSourceOfProjectReferenceRedirect": null,
+    // https://www.typescriptlang.org/tsconfig/#incremental
     "incremental": false,
+    // https://www.typescriptlang.org/tsconfig/#tsBuildInfoFile
     "tsBuildInfoFile": "./.temp/.tsbuildinfo_base",
+    //
+    // ## Output Formatting
+    //
+    // Не имеет влияния на компиляцию https://www.typescriptlang.org/tsconfig/#noErrorTruncation
+    // "noErrorTruncation": false,
+    // Не имеет влияния на компиляцию https://www.typescriptlang.org/tsconfig/#preserveWatchOutput
+    // "preserveWatchOutput": null,
+    // Не имеет влияния на компиляцию https://www.typescriptlang.org/tsconfig/#pretty
+    // "pretty": true,
     //
     // ## Completeness
     //
-    "skipLibCheck": false
+    // Вместо этого используйте skipLibCheck. https://www.typescriptlang.org/tsconfig/#skipDefaultLibCheck
+    // "skipDefaultLibCheck": false,
+    // Включение этой опции влияет на производительность и не всегда оправдано. https://www.typescriptlang.org/tsconfig/#skipLibCheck
+    "skipLibCheck": false,
+    //
+    // ## Watch Options
+    //
+    // https://www.typescriptlang.org/tsconfig/#assumeChangesOnlyAffectDirectDependencies
+    // "assumeChangesOnlyAffectDirectDependencies": null,
   },
   "typeAcquisition": {
     "disableFilenameBasedTypeAcquisition": true

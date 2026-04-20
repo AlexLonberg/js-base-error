@@ -15,6 +15,25 @@
 //
 // Правильным поведение должно быть определение на инстансе и перекрытие аксессоров
 // описание - https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Public_class_fields#description
+//
+// Современные библиотеки не стоит компилировать с целью ниже "target": "es2022".
+//
+// Вот что получиться если установить цель "target":"es2021" и "useDefineForClassFields":true
+// class Foo {
+//   constructor(bar) {
+//     Object.defineProperty(this, "_bar", {
+//       enumerable: true,
+//       configurable: true,
+//       writable: true,
+//       value: void 0
+//         });
+//     this._bar = bar;
+//
+// С целью "target":"es2022" и выше
+// class Foo {
+//   _bar;
+//   constructor(bar) {
+//     this._bar = bar;
 
 // Ниже пример как это должно работать.
 // Если это не так, следует проверить флаг tsconfig.json useDefineForClassFields:true или, при невозможности,

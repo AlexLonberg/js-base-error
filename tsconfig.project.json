@@ -3,14 +3,22 @@
   "compilerOptions": {
     "rootDir": ".",
     "allowJs": true,
-    "isolatedDeclarations": false
+    "noUncheckedIndexedAccess": false,
+    "isolatedDeclarations": false,
+    "lib": [
+      "ESNext"
+    ],
+    "types": [
+      "node"
+    ],
+    "typeRoots": null
   },
   "include": [
-    "src/**/*.ts",
     "scripts/**/*.ts",
     "scripts/**/*.js",
   ],
   "files": [
+    "eslint.rules.js",
     "eslint.config.js",
     "vitest.config.ts"
   ],

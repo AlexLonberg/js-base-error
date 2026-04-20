@@ -13,6 +13,9 @@
       "path": "./tsconfig.dist.json"
     },
     {
+      "path": "./tsconfig.tests.json"
+    },
+    {
       "path": "./tsconfig.project.json"
     }
   ]

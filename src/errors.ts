@@ -212,7 +212,7 @@ function captureErrorProperties<T extends IErrorDetail> (error: ErrorLike<any>, 
       }
       detail[key as keyof T] = value
       existsKeys.add(key)
-    } catch { /**/ }
+    } catch { }
   }
 
   // Проходим по всем прототипам не включая базовую ошибку(на которой нет свойств). Читаем только перечислимые свойства.
